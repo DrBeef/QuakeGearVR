@@ -41,16 +41,16 @@ extern vec3_t hmdorientation;
 //Calculate the y-offset of the status bar dependent on where the user is looking
 int Menu_GetYOffset()
 {
-	return (320 * ((hmdorientation[PITCH]) / -90.0f));
+	return (320 * ((hmdorientation[PITCH]) / -90.0f)) + 80;
 }
 
 int Menu_GetXOffset()
 {
 	//This will give the Menu depth in the 3D space
-	int yaw = (hmdorientation[YAW] * 4);
+	int yaw = (hmdorientation[YAW] * 3);
 	//rudimentary clamp
-	yaw = (yaw > 80) ? 80 : yaw;
-	yaw = (yaw < -80) ? -80 : yaw;
+	yaw = (yaw > 110) ? 110 : yaw;
+	yaw = (yaw < -110) ? -110 : yaw;
 	return (r_stereo_side ? -30 : 30) + yaw;
 }
 

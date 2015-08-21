@@ -31,12 +31,6 @@ __attribute__((weak)) __dso_handle=0;
 extern void initAudio(void *buffer, int size);
 extern void writeAudio(int offset, int length);
 
-/*void QGVR_SetCallbacks(void *init_audio, void *write_audio)
-{
-    writeAudio = write_audio;
-    initAudio = init_audio;
-}*/
-
 void QGVR_GetAudio(void)
 {
     int offset = (audiopos*4) & (buffersize - 1);

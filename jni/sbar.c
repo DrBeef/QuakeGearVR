@@ -1318,7 +1318,7 @@ extern vec3_t hmdorientation;
 //Calculate the y-offset of the status bar dependent on where the user is looking
 int Sbar_GetYOffset()
 {
-	if (cl.viewangles[PITCH] <= 0)
+	if (hmdorientation[PITCH] <= 15.0f)
 		return 0;
 
 	int offset = (vid_conheight.value * ((hmdorientation[PITCH] - 15.0f) / 90.0f));
@@ -1329,7 +1329,7 @@ int Sbar_GetYOffset()
 int Sbar_GetXOffset()
 {
 	//This will give the status bar depth in the 3D space
-	int yaw = (hmdorientation[YAW] * 4);
+	int yaw = (hmdorientation[YAW] * 3);
 	//rudimentary clamp
 	yaw = (yaw > 80) ? 80 : yaw;
 	yaw = (yaw < -80) ? -80 : yaw;

@@ -36,17 +36,22 @@ static int NehGameType;
 enum m_state_e m_state;
 char m_return_reason[128];
 
+extern vec3_t hmdorientation;
+
 //Calculate the y-offset of the status bar dependent on where the user is looking
 int Menu_GetYOffset()
 {
-	return (320 * ((cl.viewangles[PITCH]) / -90.0f));
+	return (320 * ((hmdorientation[PITCH]) / -90.0f));
 }
 
-extern vec3_t hmdorientation;
 int Menu_GetXOffset()
 {
-	//This will give the menu depth in the 3D space
-	return (r_stereo_side ? -30 : 30) + (hmdorientation[YAW] * 4);
+	//This will give the Menu depth in the 3D space
+	int yaw = (hmdorientation[YAW] * 4);
+	//rudimentary clamp
+	yaw = (yaw > 80) ? 80 : yaw;
+	yaw = (yaw < -80) ? -80 : yaw;
+	return (r_stereo_side ? -30 : 30) + yaw;
 }
 
 
@@ -1708,7 +1713,7 @@ static void M_Options_Draw (void)
 	M_Options_PrintCommand( "    Customize controls", true);
 	M_Options_PrintCommand( "         Go to console", true);
 	M_Options_PrintCommand( "     Reset to defaults", true);
-	M_Options_PrintCommand( "     Change Video Mode", true);
+	M_Options_PrintCommand( "     Change Video Mode", false);
 	M_Options_PrintSlider(  "             Crosshair", true, crosshair.value, 0, 7);
 	M_Options_PrintSlider(  "           Mouse Speed", true, sensitivity.value, 1, 50);
 	M_Options_PrintCheckbox("          Invert Mouse", true, m_pitch.value < 0);
@@ -1759,9 +1764,9 @@ static void M_Options_Key (int k, int ascii)
 		case 2:
 			M_Menu_Reset_f ();
 			break;
-		case 3:
-			M_Menu_Video_f ();
-			break;
+//		case 3:
+//			M_Menu_Video_f ();
+//			break;
 		case 11:
 			M_Menu_Options_ColorControl_f ();
 			break;

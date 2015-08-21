@@ -1313,22 +1313,27 @@ static void Sbar_DrawGauge(float x, float y, cachepic_t *pic, float width, float
 		DrawQ_SuperPic(x, y + r[3], pic, width, (r[4] - r[3]), 0,(r[3] / height), c3r,c3g,c3b,c3a, 1,(r[3] / height), c3r,c3g,c3b,c3a, 0,(r[4] / height), c3r,c3g,c3b,c3a, 1,(r[4] / height), c3r,c3g,c3b,c3a, drawflags);
 }
 
+extern vec3_t hmdorientation;
+
 //Calculate the y-offset of the status bar dependent on where the user is looking
 int Sbar_GetYOffset()
 {
 	if (cl.viewangles[PITCH] <= 0)
 		return 0;
 
-	int offset = (vid_conheight.value * ((cl.viewangles[PITCH] - 15.0f) / 90.0f));
+	int offset = (vid_conheight.value * ((hmdorientation[PITCH] - 15.0f) / 90.0f));
 	if (offset < 0) offset = 0;
 	return offset;
 }
 
-extern vec3_t hmdorientation;
 int Sbar_GetXOffset()
 {
 	//This will give the status bar depth in the 3D space
-	return (r_stereo_side ? -30 : 30) + (hmdorientation[YAW] * 4);
+	int yaw = (hmdorientation[YAW] * 4);
+	//rudimentary clamp
+	yaw = (yaw > 80) ? 80 : yaw;
+	yaw = (yaw < -80) ? -80 : yaw;
+	return (r_stereo_side ? -30 : 30) + yaw;
 }
 
 /*

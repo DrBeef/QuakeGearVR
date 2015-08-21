@@ -7,10 +7,12 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import android.app.Activity;
+import android.content.Intent;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.InputDevice;
@@ -35,63 +37,48 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 	private SurfaceHolder mSurfaceHolder;
 	private long mNativeHandle;
 	
-	public QuakeGearVRAudioTrack mAudioTrack;	
-	byte[] mAudioData;
-	public static boolean reqThreadrunning=true;	
+	public static QGVRAudioCallback mAudio;
 	
-	public void init(int size)
-	{
-		if(mAudioTrack != null) return;		
-		size/=8;		
-		
-		mAudioData=new byte[size];		
-		int sampleFreq = 44100;							
-	
-		int bufferSize = Math.max(size,AudioTrack.getMinBufferSize(sampleFreq, AudioFormat.CHANNEL_CONFIGURATION_STEREO, AudioFormat.ENCODING_PCM_16BIT));		
-		mAudioTrack = new QuakeGearVRAudioTrack(AudioManager.STREAM_MUSIC,sampleFreq,AudioFormat.CHANNEL_CONFIGURATION_STEREO,
-		AudioFormat.ENCODING_PCM_16BIT,bufferSize,AudioTrack.MODE_STREAM);
-		mAudioTrack.play();
-		long sleeptime=(size*1000000000l)/(2*2*sampleFreq);
-		ScheduledThreadPoolExecutor stpe=new ScheduledThreadPoolExecutor(5);
-		stpe.scheduleAtFixedRate(new Runnable() {			
-			@Override
-			public void run() {
-				if (reqThreadrunning)
-				{						
-					GLES3JNILib.requestAudioData( mNativeHandle );
-				}							
-			}
-		}, 0, sleeptime, TimeUnit.NANOSECONDS);		
-	}
-	
-	int sync=0;
+	// These variables duplicated in VrLib.java!
+	public static final String INTENT_KEY_CMD = "intent_cmd";
+	public static final String INTENT_KEY_FROM_PKG = "intent_pkg";
 
-	public void writeAudio(ByteBuffer audioData, int offset, int len)
-	{
-		if(mAudioTrack == null)
-			return;			
-		audioData.position(offset);
-		audioData.get(mAudioData, 0, len);
-		if (sync++%128==0)
-		mAudioTrack.flush();
-		mAudioTrack.write(mAudioData, 0, len);
+	public static String getCommandStringFromIntent( Intent intent ) {
+		String commandStr = "";
+		if ( intent != null ) {
+			commandStr = intent.getStringExtra( INTENT_KEY_CMD );
+			if ( commandStr == null ) {
+				commandStr = "";
+			}
+		}
+		return commandStr;
+	}
+
+	public static String getPackageStringFromIntent( Intent intent ) {
+		String packageStr = "";
+		if ( intent != null ) {
+			packageStr = intent.getStringExtra( INTENT_KEY_FROM_PKG );
+			if ( packageStr == null ) {
+				packageStr = "";
+			}
+		}
+		return packageStr;
+	}
+
+	public static String getUriStringFromIntent( Intent intent ) {
+		String uriString = "";
+		if ( intent != null ) {
+			Uri uri = intent.getData();
+			if ( uri != null ) {
+				uriString = uri.toString();
+				if ( uriString == null ) {
+					uriString = "";
+				}
+			}
+		}
+		return uriString;
 	}
 	
-	public void pause()
-	{
-		if(mAudioTrack == null)
-			return;				
-		mAudioTrack.pause();	
-		reqThreadrunning=false;
-	}
-	
-	public void resume()
-	{
-		if(mAudioTrack == null)
-			return;				
-		mAudioTrack.play();	
-		reqThreadrunning=true;
-	}
 
 
 	@Override protected void onCreate( Bundle icicle )
@@ -113,7 +100,19 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		params.screenBrightness = 1.0f;
 		getWindow().setAttributes( params );
 
-		mNativeHandle = GLES3JNILib.onCreate( this );
+		Intent intent = getIntent();
+		String commandString = getCommandStringFromIntent( intent );
+		String fromPackageNameString = getPackageStringFromIntent( intent );
+		String uriString = getUriStringFromIntent( intent );
+		
+		if (mAudio==null)			
+		{
+			mAudio = new QGVRAudioCallback();
+		}
+		
+		GLES3JNILib.setCallbackObject(mAudio);
+
+		mNativeHandle = GLES3JNILib.onCreate( this, fromPackageNameString, commandString, uriString );
 	}
 
 	@Override protected void onStart()
@@ -428,20 +427,4 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		return keyCode%95+32;//Magic
 	}
 
-}
-
-class QuakeGearVRAudioTrack extends AudioTrack
-{	
-	public QuakeGearVRAudioTrack(int streamType, int sampleRateInHz,
-			int channelConfig, int audioFormat, int bufferSizeInBytes, int mode)
-			throws IllegalStateException {
-		super(streamType, sampleRateInHz, channelConfig, audioFormat,
-				bufferSizeInBytes, mode);
-	}
-	
-	@Override
-	public void play() throws IllegalStateException {				
-		flush();		
-		super.play();		
-	}
 }

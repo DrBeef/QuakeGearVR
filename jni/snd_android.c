@@ -28,14 +28,14 @@ static unsigned int audiopos = 0;
 static unsigned int buffersize;
 __attribute__((weak)) __dso_handle=0;
 
-extern void initAudio(void *buffer, int size);
-extern void writeAudio(int offset, int length);
+extern void jni_initAudio(void *buffer, int size);
+extern void jni_writeAudio(int offset, int length);
 
-void QGVR_GetAudio(void)
+void QGVR_GetAudio()
 {
     int offset = (audiopos*4) & (buffersize - 1);
     if (snd_renderbuffer!=NULL)
-    	writeAudio(offset, 2048*4);
+    	jni_writeAudio(offset, 2048*4);
     audiopos+=2048;
 }
 
@@ -98,7 +98,7 @@ qboolean SndSys_Init (const snd_format_t* requested, snd_format_t* suggested)
 
 	audiopos = 0;
 	buffersize=16384*2*2;
-	initAudio(snd_renderbuffer->ring, buffersize);
+	jni_initAudio(snd_renderbuffer->ring, buffersize);
 
 	return true;
 }

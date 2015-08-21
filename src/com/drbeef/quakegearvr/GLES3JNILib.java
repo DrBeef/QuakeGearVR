@@ -9,7 +9,7 @@ import android.view.Surface;
 public class GLES3JNILib
 {
 	// Activity lifecycle
-	public static native long onCreate( Activity obj );
+	public static native long onCreate( Activity obj, String fromPackageNameString, String commandString, String uriString );
 	public static native void onStart( long handle );
 	public static native void onResume( long handle );
 	public static native void onPause( long handle );
@@ -27,5 +27,6 @@ public class GLES3JNILib
 	public static native void onMotionEvent( long handle, int source, int action, float x, float y );
 	
 	//Q3E stuff (renamed to make things a bit easier)
-	public static native void requestAudioData( long handle );
+	public static native void requestAudioData();
+	public static native void setCallbackObject(Object obj);	
 }

@@ -42,14 +42,6 @@ Copyright	:	Copyright 2015 Oculus VR, LLC. All Rights reserved.
 #include "VrApi_Helpers.h"
 #include "VrApi_Android.h"
 
-jmethodID android_initAudio;
-jmethodID android_writeAudio;
-
-static ovrJava _java;
-static jobject audioBuffer=0;
-static jobject ActivityObject=0;
-static jclass ActivityClass;
-
 #define DEBUG 1
 #define LOG_TAG "QuakeGearVR"
 
@@ -75,6 +67,10 @@ extern void QGVR_SetResolution(int width, int height);
 extern void QGVR_Analog(int enable,float x,float y);
 extern void QGVR_MotionEvent(float dx, float dy);
 extern int main (int argc, char **argv);
+
+static JavaVM *jVM;
+static jobject audioBuffer=0;
+static jobject qgvrCallbackObj=0;
 
 
 //Timing stuff for joypad control
@@ -118,21 +114,6 @@ float GVR_GetSeparation()
 }
 
 vec3_t hmdorientation;
-
-void initAudio(void *buffer, int size)
-{
-//    jobject tmp;
-//    tmp = (*_java.Env)->NewDirectByteBuffer(_java.Env, buffer, size);
-//    audioBuffer = (jobject)(*_java.Env)->NewGlobalRef(_java.Env, tmp);
-//     (*_java.Env)->CallVoidMethod(_java.Env, ActivityObject, android_initAudio, size);
-}
-
-void writeAudio(int offset, int length)
-{
-//	if (audioBuffer==0) return;
-//    (*_java.Env)->CallVoidMethod(_java.Env, ActivityObject, android_writeAudio, audioBuffer, offset, length);
-}
-
 
 /*
 ================================================================================
@@ -1086,11 +1067,26 @@ typedef struct
 {
 	JavaVM *		JavaVm;
 	jobject			ActivityObject;
-	jclass			ActivityClass;
 	pthread_t		Thread;
 	ovrMessageQueue	MessageQueue;
 	ANativeWindow * NativeWindow;
 } ovrAppThread;
+
+jmethodID android_initAudio;
+jmethodID android_writeAudio;
+
+int JNI_OnLoad(JavaVM* vm, void* reserved)
+{
+    JNIEnv *env;
+    jVM = vm;
+    if((*vm)->GetEnv(vm, (void**) &env, JNI_VERSION_1_4) != JNI_OK)
+    {
+        ALOGE("Failed JNI_OnLoad");
+        return -1;
+    }
+
+    return JNI_VERSION_1_4;
+}
 
 void * AppThreadFunction( void * parm )
 {
@@ -1098,24 +1094,12 @@ void * AppThreadFunction( void * parm )
 
 	static ovrJava java;
 	java.Vm = appThread->JavaVm;
-	//_java.Vm = appThread->JavaVm;
 	(*java.Vm)->AttachCurrentThread( java.Vm, &java.Env, NULL );
-	//_java.Env = java.Env;
 	java.ActivityObject = appThread->ActivityObject;
-
-	ALOGV( "    Creating callbacks" );
-    ActivityObject = appThread->ActivityObject;
-	ALOGV( "    android_initAudio = (*java.Env)->GetMethodID" );
-//    android_initAudio = (*java.Env)->GetMethodID(java.Env, appThread->ActivityClass, "init","(I)V");
-	ALOGV( "    android_writeAudio = (*java.Env)->GetMethodID" );
-//    android_writeAudio = (*java.Env)->GetMethodID(java.Env, appThread->ActivityClass, "writeAudio","(Ljava/nio/ByteBuffer;II)V");
 
 	ALOGV( "    vrapi_Initialize" );
 	const ovrInitParms initParms = vrapi_DefaultInitParms( &java );
 	vrapi_Initialize( &initParms );
-
-	//Set the full brightness
-	//ovr_SetSystemBrightness(&java, 100);
 
 	ovrApp appState;
 	ovrApp_Clear( &appState );
@@ -1214,7 +1198,6 @@ static void ovrAppThread_Create( ovrAppThread * appThread, JNIEnv * env, jobject
 {
 	(*env)->GetJavaVM( env, &appThread->JavaVm );
 	appThread->ActivityObject = (*env)->NewGlobalRef( env, activityObject );
-	appThread->ActivityClass = activityClass;
 	appThread->Thread = 0;
 	appThread->NativeWindow = NULL;
 	ovrMessageQueue_Create( &appThread->MessageQueue );
@@ -1241,7 +1224,8 @@ Activity lifecycle
 ================================================================================
 */
 
-JNIEXPORT jlong JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onCreate( JNIEnv * env, jclass activityClass, jobject activity)
+JNIEXPORT jlong JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onCreate( JNIEnv * env, jclass activityClass, jobject activity,
+		jstring fromPackageName, jstring commandString, jstring uriString)
 {
 	ALOGV( "    GLES3JNILib::onCreate()" );
 
@@ -1254,6 +1238,20 @@ JNIEXPORT jlong JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onCreate( JNIEnv
 	ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
 
 	return (jlong)((size_t)appThread);
+}
+
+
+JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_setCallbackObject(JNIEnv *env, jclass c, jobject obj)
+{
+    qgvrCallbackObj = obj;
+    jclass qgvrCallbackClass;
+
+    (*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4);
+    qgvrCallbackObj = (jobject)(*env)->NewGlobalRef(env, obj);
+    qgvrCallbackClass = (*env)->GetObjectClass(env, qgvrCallbackObj);
+
+    android_initAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"initAudio","(I)V");
+    android_writeAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"writeAudio","(Ljava/nio/ByteBuffer;II)V");
 }
 
 JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onStart( JNIEnv * env, jobject obj, jlong handle )
@@ -1447,7 +1445,29 @@ JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onMotionEvent( JN
 
 JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_requestAudioData(JNIEnv *env, jclass c, jlong handle)
 {
-	ovrAppThread * appThread = (ovrAppThread *)((size_t)handle);
+	ALOGV("Calling: QGVR_GetAudio");
 	QGVR_GetAudio();
 }
 
+void jni_initAudio(void *buffer, int size)
+{
+	ALOGV("Calling: jni_initAudio");
+    JNIEnv *env;
+    jobject tmp;
+    (*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4);
+    tmp = (*env)->NewDirectByteBuffer(env, buffer, size);
+    audioBuffer = (jobject)(*env)->NewGlobalRef(env, tmp);
+    return (*env)->CallVoidMethod(env, qgvrCallbackObj, android_initAudio, size);
+}
+
+void jni_writeAudio(int offset, int length)
+{
+	ALOGV("Calling: jni_writeAudio");
+	if (audioBuffer==0) return;
+    JNIEnv *env;
+    if (((*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4))<0)
+    {
+    	(*jVM)->AttachCurrentThread(jVM,&env, NULL);
+    }
+    (*env)->CallVoidMethod(env, qgvrCallbackObj, android_writeAudio, audioBuffer, offset, length);
+}

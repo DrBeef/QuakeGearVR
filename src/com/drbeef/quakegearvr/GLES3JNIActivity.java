@@ -30,6 +30,11 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 	{
 		System.loadLibrary( "quakegearvr" );
 	}
+	
+	//Save the game pad type once known:
+	// 1 - Generic BT gamepad
+	// 2 - Samsung gamepad that uses different axes for right stick
+	int gamepadType = 0;
 
 	private static final String TAG = "QuakeGearVR";
 
@@ -208,17 +213,26 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 				Log.v( TAG, "GLES3JNIActivity::dispatchKeyEvent( " + keyCode + ", " + action + " )" );
 			}
 			
-			//Back button reserved for Gear VR functionality
-			if (keyCode != KeyEvent.KEYCODE_BACK )
+			//Following buttons must not be handled here
+			if (keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+				keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
+				keyCode == KeyEvent.KEYCODE_BUTTON_THUMBL
+				)
+				return false;
+			
+			if (keyCode == KeyEvent.KEYCODE_BACK)
 			{
-				//Convert to Quake keys
-				character = getCharacter(keyCode, event);
-				int qKeyCode = convertKeyCode(keyCode, event);
-				
-				//Don't hijack all keys (volume etc)
-				if (qKeyCode != -1)
-					keyCode = qKeyCode;
+				//Pass through
+				GLES3JNILib.onKeyEvent( mNativeHandle, keyCode, action, character );
 			}
+			
+			//Convert to Quake keys
+			character = getCharacter(keyCode, event);
+			int qKeyCode = convertKeyCode(keyCode, event);
+			
+			//Don't hijack all keys (volume etc)
+			if (qKeyCode != -1)
+				keyCode = qKeyCode;
 			
 			GLES3JNILib.onKeyEvent( mNativeHandle, keyCode, action, character );
 		}
@@ -248,10 +262,32 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 			float y = -getCenteredAxis(event, MotionEvent.AXIS_Y);			
 			GLES3JNILib.onTouchEvent( mNativeHandle, source, action, x, y );
 			
-	        x = getCenteredAxis(event, MotionEvent.AXIS_Z);
-	        y = getCenteredAxis(event, MotionEvent.AXIS_RZ);	      	        
-			GLES3JNILib.onMotionEvent( mNativeHandle, source, action, x, y );
-		//	return true;
+	        float z = getCenteredAxis(event, MotionEvent.AXIS_Z);
+	        float rz = getCenteredAxis(event, MotionEvent.AXIS_RZ);	
+			//For the samsung game pad (uses different axes for the second stick)
+			float rx = getCenteredAxis(event, MotionEvent.AXIS_RX);
+			float ry = getCenteredAxis(event, MotionEvent.AXIS_RY);	      	        
+	        	
+			//let's figure it out
+			if (gamepadType == 0)
+			{
+		        if (z != 0.0f || rz != 0.0f)
+		        	gamepadType = 1;
+		        else if (rx != 0.0f || ry != 0.0f)
+		        	gamepadType = 2;
+			}
+
+			switch (gamepadType)
+			{
+			case 0:
+				break;
+			case 1:
+	        	GLES3JNILib.onMotionEvent( mNativeHandle, source, action, z, rz );
+	        	break;
+			case 2:
+				GLES3JNILib.onMotionEvent( mNativeHandle, source, action, rx, ry );
+				break;
+			}
 		}
 	    return false;
 	}
@@ -321,10 +357,6 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		{			
 			case KeyEvent.KEYCODE_FOCUS:
 				return K_F1;
-			case KeyEvent.KEYCODE_VOLUME_DOWN:
-				return -1;
-			case KeyEvent.KEYCODE_VOLUME_UP:
-				return -1;
 			case KeyEvent.KEYCODE_DPAD_UP:
 				return K_UPARROW;
 			case KeyEvent.KEYCODE_DPAD_DOWN:
@@ -419,7 +451,9 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 			case KeyEvent.KEYCODE_BUTTON_R1:
 				return K_MOUSE1;//Sometimes it is necessary
 			case KeyEvent.KEYCODE_BUTTON_L1:
-				return 'l';//dunno why
+				return K_SHIFT;//enables "run"
+			case KeyEvent.KEYCODE_BUTTON_THUMBL:
+				return -1;
 		}	
 		int uchar = event.getUnicodeChar(0);
 		if((uchar < 127)&&(uchar!=0))

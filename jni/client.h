@@ -1114,6 +1114,9 @@ typedef struct client_state_s
 // the view is temporarily offset, and an angle reset commands at the start
 // of each level and after teleporting.
 
+	//The increments for comfort mode
+	int comfortInc;
+
 	// mviewangles is read from demo
 	// viewangles is either client controlled or lerped from mviewangles
 	vec3_t mviewangles[2], viewangles;
@@ -1486,6 +1489,8 @@ extern cvar_t cl_sidespeed;
 
 extern cvar_t cl_movespeedkey;
 
+extern cvar_t cl_yawmode;
+extern cvar_t cl_comfort;
 extern cvar_t cl_yawspeed;
 extern cvar_t cl_pitchspeed;
 

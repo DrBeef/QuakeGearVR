@@ -70,6 +70,7 @@ void M_Menu_Main_f (void);
 		void M_Menu_Keys_f (void);
 		void M_Menu_Reset_f (void);
 		void M_Menu_Video_f (void);
+		void M_Menu_YawControl_f (void);
 	void M_Menu_Help_f (void);
 	void M_Menu_Credits_f (void);
 	void M_Menu_Quit_f (void);
@@ -93,6 +94,7 @@ static void M_Main_Draw (void);
 		static void M_Keys_Draw (void);
 		static void M_Reset_Draw (void);
 		static void M_Video_Draw (void);
+		static void M_Menu_YawControl_Draw (void);
 	static void M_Help_Draw (void);
 	static void M_Credits_Draw (void);
 	static void M_Quit_Draw (void);
@@ -117,6 +119,7 @@ static void M_Main_Key (int key, int ascii);
 		static void M_Keys_Key (int key, int ascii);
 		static void M_Reset_Key (int key, int ascii);
 		static void M_Video_Key (int key, int ascii);
+		static void M_Menu_YawControl_Key (int key, int ascii);
 	static void M_Help_Key (int key, int ascii);
 	static void M_Credits_Key (int key, int ascii);
 	static void M_Quit_Key (int key, int ascii);
@@ -1713,7 +1716,7 @@ static void M_Options_Draw (void)
 	M_Options_PrintCommand( "    Customize controls", true);
 	M_Options_PrintCommand( "         Go to console", true);
 	M_Options_PrintCommand( "     Reset to defaults", true);
-	M_Options_PrintCommand( "     Change Video Mode", false);
+	M_Options_PrintCommand( "      Yaw Control Mode", true);
 	M_Options_PrintSlider(  "             Crosshair", true, crosshair.value, 0, 7);
 	M_Options_PrintSlider(  "           Mouse Speed", true, sensitivity.value, 1, 50);
 	M_Options_PrintCheckbox("          Invert Mouse", true, m_pitch.value < 0);
@@ -1764,9 +1767,9 @@ static void M_Options_Key (int k, int ascii)
 		case 2:
 			M_Menu_Reset_f ();
 			break;
-//		case 3:
-//			M_Menu_Video_f ();
-//			break;
+		case 3:
+			M_Menu_YawControl_f ();
+			break;
 		case 11:
 			M_Menu_Options_ColorControl_f ();
 			break;
@@ -2805,6 +2808,135 @@ static void M_Reset_Draw (void)
 	M_DrawTextBox(0, 0, linelength, lines);
 	M_Print(8 + 4 * (linelength - 19),  8, "Really wanna reset?");
 	M_Print(8 + 4 * (linelength - 11), 16, "Press y / n");
+}
+
+#define	YAWCONTROL_ITEMS	3
+
+static int yawcontrol_cursor;
+
+void M_Menu_YawControl_f (void)
+{
+	key_dest = key_menu;
+	m_state = m_yawcontrol;
+	m_entersound = true;
+}
+
+static void M_Menu_YawControl_AdjustSliders (int dir)
+{
+	int optnum;
+	S_LocalSound ("sound/misc/menu3.wav");
+
+	optnum = 0;
+
+	     if (yawcontrol_cursor == optnum++) ;
+	else if (yawcontrol_cursor == optnum++ && cl_yawmode.integer == 1)
+		{
+			float value = 45.0f;
+			if (dir == 1)
+			{
+				if (cl_comfort.value == 30.0f)
+					value = 45.0f;
+				else if (cl_comfort.value == 45.0f)
+					value = 60.0f;
+				else if (cl_comfort.value == 60.0f)
+					value = 90.0f;
+				else if (cl_comfort.value == 90.0f)
+					value = 180.0f;
+				else if (cl_comfort.value == 180.0f)
+					value = 30.0f;
+			}
+			else
+			{
+				if (cl_comfort.value == 30.0f)
+					value = 180.0f;
+				else if (cl_comfort.value == 180.0f)
+					value = 90.0f;
+				else if (cl_comfort.value == 90.0f)
+					value = 60.0f;
+				else if (cl_comfort.value == 60.0f)
+					value = 45.0f;
+				else if (cl_comfort.value == 45.0f)
+					value = 30.0f;
+			}
+
+			Cvar_SetValueQuick (&cl_comfort, value);
+		}
+	else if (yawcontrol_cursor == optnum++  && cl_yawmode.integer == 2)
+		Cvar_SetValueQuick (&cl_yawspeed, min((cl_yawspeed.value + (dir * 10)), 300));
+}
+
+static void M_Menu_YawControl_Key (int key, int ascii)
+{
+	switch (key)
+	{
+	case K_ESCAPE:
+		M_Menu_Main_f ();
+		break;
+
+	case K_DOWNARROW:
+		S_LocalSound ("sound/misc/menu1.wav");
+		if (++yawcontrol_cursor >= YAWCONTROL_ITEMS)
+			yawcontrol_cursor = 0;
+		break;
+
+	case K_UPARROW:
+		S_LocalSound ("sound/misc/menu1.wav");
+		if (--yawcontrol_cursor < 0)
+			yawcontrol_cursor = YAWCONTROL_ITEMS - 1;
+		break;
+
+	case 'a':
+	case K_LEFTARROW:
+		if (yawcontrol_cursor > 0)
+			M_Menu_YawControl_AdjustSliders(-1);
+		else
+		{
+			if (--cl_yawmode.integer < 0)
+				cl_yawmode.integer = 2;
+		}
+		break;
+
+	case 'd':
+	case K_RIGHTARROW:
+		if (yawcontrol_cursor > 0)
+			M_Menu_YawControl_AdjustSliders(1);
+		else
+		{
+			if (++cl_yawmode.integer > 2)
+				cl_yawmode.integer = 0;
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+static void M_Menu_YawControl_Draw (void)
+{
+	int visible;
+	cachepic_t	*p;
+
+	M_Background(320, bound(200, 32 + OPTIONS_ITEMS * 8, vid_conheight.integer));
+
+	M_DrawPic(16, 4, "gfx/qplaque");
+	p = Draw_CachePic ("gfx/p_option");
+	M_DrawPic((320-p->width)/2, 4, "gfx/p_option");
+
+	optnum = 0;
+	optcursor = yawcontrol_cursor;
+	visible = (int)((menu_height - 32) / 8);
+	opty = 32 - bound(0, optcursor - (visible >> 1), max(0, YAWCONTROL_ITEMS - visible)) * 8;
+
+	if (cl_yawmode.integer == 0)
+		M_Options_PrintCommand("         Mode: \"Swivel-Chair\"", true);
+	else if (cl_yawmode.integer == 1)
+		M_Options_PrintCommand("         Mode: \"Comfort-Mode\"", true);
+	else
+		M_Options_PrintCommand("         Mode: Stick-Yaw", true);
+
+	M_Options_PrintSlider(  "Comfort Mode Turn Angle", cl_yawmode.integer == 1, cl_comfort.value, 30, 180);
+	M_Options_PrintSlider(  "   Stick Yaw Turn Speed", cl_yawmode.integer == 2, cl_yawspeed.value, 10, 250);
 }
 
 //=============================================================================
@@ -4790,6 +4922,7 @@ static void M_Init (void)
 	Cmd_AddCommand ("menu_keys", M_Menu_Keys_f, "open the key binding menu");
 	Cmd_AddCommand ("menu_video", M_Menu_Video_f, "open the video options menu");
 	Cmd_AddCommand ("menu_reset", M_Menu_Reset_f, "open the reset to defaults menu");
+	Cmd_AddCommand ("menu_reset", M_Menu_YawControl_f, "open the yaw control menu");
 	Cmd_AddCommand ("menu_mods", M_Menu_ModList_f, "open the mods browser menu");
 	Cmd_AddCommand ("help", M_Menu_Help_f, "open the help menu");
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f, "open the quit menu");
@@ -4874,6 +5007,10 @@ void M_Draw (void)
 
 	case m_video:
 		M_Video_Draw ();
+		break;
+
+	case m_yawcontrol:
+		M_Menu_YawControl_Draw ();
 		break;
 
 	case m_help:
@@ -5018,6 +5155,10 @@ void M_KeyEvent (int key, int ascii, qboolean downevent)
 
 	case m_video:
 		M_Video_Key (key, ascii);
+		return;
+
+	case m_yawcontrol:
+		M_Menu_YawControl_Key (key, ascii);
 		return;
 
 	case m_help:

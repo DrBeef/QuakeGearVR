@@ -29,7 +29,6 @@ Copyright	:	Copyright 2015 Oculus VR, LLC. All Rights reserved.
 
 #include <qtypes.h>
 
-
 #if !defined( EGL_OPENGL_ES3_BIT_KHR )
 #define EGL_OPENGL_ES3_BIT_KHR		0x0040
 #endif
@@ -65,7 +64,7 @@ extern void QGVR_MoveEvent(float yaw, float pitch, float roll);
 extern void QGVR_SetCallbacks(void *init_audio, void *write_audio);
 extern void QGVR_SetResolution(int width, int height);
 extern void QGVR_Analog(int enable,float x,float y);
-extern void QGVR_MotionEvent(float dx, float dy);
+extern void QGVR_MotionEvent(float delta, float dx, float dy);
 extern int main (int argc, char **argv);
 
 static JavaVM *jVM;
@@ -599,8 +598,7 @@ static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJ
 	if (delta>1000)
 		delta=1000;
 
-	if ((last_joystick_x!=0)||(last_joystick_y!=0))
-		QGVR_MotionEvent(delta*last_joystick_x, delta*last_joystick_y);
+	QGVR_MotionEvent(delta, last_joystick_x, last_joystick_y);
 
 
 	// Calculate the center view matrix.
@@ -853,10 +851,10 @@ static int ovrApp_HandleTouchEvent( ovrApp * app, const int source, const int ac
 
 static int ovrApp_HandleMotionEvent( ovrApp * app, const int source, const int action, const float x, const float y )
 {
+	static bool down = false;
 	if (source == SOURCE_JOYSTICK || source == SOURCE_GAMEPAD)
 	{
 		last_joystick_x=x;
-		last_joystick_y=y;
 	}
 	return 1;
 }

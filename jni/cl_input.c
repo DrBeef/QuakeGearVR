@@ -436,7 +436,9 @@ cvar_t cl_sidespeed = {CVAR_SAVE, "cl_sidespeed","350","strafe movement speed"};
 cvar_t cl_movespeedkey = {CVAR_SAVE, "cl_movespeedkey","2.0","how much +speed multiplies keyboard movement speed"};
 cvar_t cl_movecliptokeyboard = {0, "cl_movecliptokeyboard", "0", "if set to 1, any move is clipped to the nine keyboard states; if set to 2, only the direction is clipped, not the amount"};
 
-cvar_t cl_yawspeed = {CVAR_SAVE, "cl_yawspeed","140","keyboard yaw turning speed"};
+cvar_t cl_yawmode = {CVAR_SAVE, "cl_yawmode","1","0 = swivel-chair, 1 = comfort, 2 = stick"};
+cvar_t cl_comfort = {CVAR_SAVE, "cl_comfort","45.0","angle by which comfort mode adjusts yaw"};
+cvar_t cl_yawspeed = {CVAR_SAVE, "cl_yawspeed","150","keyboard yaw turning speed"};
 cvar_t cl_pitchspeed = {CVAR_SAVE, "cl_pitchspeed","150","keyboard pitch turning speed"};
 
 cvar_t cl_anglespeedkey = {CVAR_SAVE, "cl_anglespeedkey","1.5","how much +speed multiplies keyboard turning speed"};
@@ -487,7 +489,7 @@ CL_AdjustAngles
 Moves the local angle positions
 ================
 */
-static void CL_AdjustAngles (void)
+static void CL_AdjustAngles (qboolean firstCall)
 {
 	float	speed;
 	float	up, down;
@@ -499,8 +501,17 @@ static void CL_AdjustAngles (void)
 
 	if (!(in_strafe.state & 1))
 	{
-		cl.viewangles[YAW] -= speed*cl_yawspeed.value*CL_KeyState (&in_right);
-		cl.viewangles[YAW] += speed*cl_yawspeed.value*CL_KeyState (&in_left);
+		//Comfort mode
+		if ((cl_yawmode.integer == 1) && firstCall)
+		{
+			cl.viewangles[YAW] = (float)(cl.comfortInc) * cl_comfort.value;
+		}
+		//Stick control mode
+		if (cl_yawmode.integer == 2)
+		{
+			cl.viewangles[YAW] -= speed*cl_yawspeed.value*CL_KeyState (&in_right);
+			cl.viewangles[YAW] += speed*cl_yawspeed.value*CL_KeyState (&in_left);
+		}
 	}
 	if (in_klook.state & 1)
 	{
@@ -543,7 +554,7 @@ void CL_Input (void)
 	static float old_mouse_x = 0, old_mouse_y = 0;
 
 	// clamp before the move to prevent starting with bad angles
-	CL_AdjustAngles ();
+	CL_AdjustAngles (true);
 
 	if(v_flipped.integer)
 		cl.viewangles[YAW] = -cl.viewangles[YAW];
@@ -704,7 +715,7 @@ void CL_Input (void)
 	}
 
 	// clamp after the move to prevent rendering with bad angles
-	CL_AdjustAngles ();
+	CL_AdjustAngles (false);
 
 	if(cl_movecliptokeyboard.integer)
 	{
@@ -2233,6 +2244,10 @@ void CL_InitInput (void)
 	Cmd_AddCommand ("cycleweapon", IN_CycleWeapon, "send an impulse number to server to select the next usable weapon out of several (example: 9 4 8) if you are holding one of these, and choose the first one if you are holding none of these");
 #endif
 	Cmd_AddCommand ("register_bestweapon", IN_BestWeapon_Register_f, "(for QC usage only) change weapon parameters to be used by bestweapon; stuffcmd this in ClientConnect");
+
+	Cvar_RegisterVariable(&cl_yawmode);
+	Cvar_RegisterVariable(&cl_comfort);
+	Cvar_RegisterVariable(&cl_yawspeed);
 
 	Cvar_RegisterVariable(&cl_movecliptokeyboard);
 	Cvar_RegisterVariable(&cl_movement);

@@ -485,16 +485,42 @@ void QGVR_Analog(int enable,float x,float y)
 	analogy=y;
 }
 
-void QGVR_MotionEvent(float dx, float dy)
+void QGVR_MotionEvent(float delta, float dx, float dy)
 {
-in_mouse_x+=dx;
-in_mouse_y+=dy;
-in_windowmouse_x += dx;
-if (in_windowmouse_x<0) in_windowmouse_x=0;
-if (in_windowmouse_x>andrw-1) in_windowmouse_x=andrw-1;
-in_windowmouse_y += dy;
-if (in_windowmouse_y<0) in_windowmouse_y=0;
-if (in_windowmouse_y>andrh-1) in_windowmouse_y=andrh-1;
+	static bool canAdjust = true;
+	if (cl_yawmode.integer == 1)
+	{
+		if (fabs(dx) > 0.4 && canAdjust && delta != -1.0f)
+		{
+			if (dx > 0.0)
+				cl.comfortInc--;
+			else
+				cl.comfortInc++;
+
+			int max = (360.f / cl_comfort.value);
+
+			if (cl.comfortInc >= max)
+				cl.comfortInc = 0;
+			if (cl.comfortInc < 0)
+				cl.comfortInc = max-1;
+
+			canAdjust = false;
+		}
+
+		if (fabs(dx) < 0.3)
+			canAdjust = true;
+	}
+	else if (cl_yawmode.integer == 2)
+	{
+		in_mouse_x+=(dx*delta);
+		in_mouse_y+=(dy*delta);
+		in_windowmouse_x += (dx*delta);
+		if (in_windowmouse_x<0) in_windowmouse_x=0;
+		if (in_windowmouse_x>andrw-1) in_windowmouse_x=andrw-1;
+		in_windowmouse_y += (dy*delta);
+		if (in_windowmouse_y<0) in_windowmouse_y=0;
+		if (in_windowmouse_y>andrh-1) in_windowmouse_y=andrh-1;
+	}
 }
 
 static struct {
@@ -505,7 +531,8 @@ static struct {
 void IN_Move(void)
 {
 	cl.viewangles[PITCH] = move_event.pitch;
-	cl.viewangles[YAW] -= move_event.previous_yaw;
+	if (cl_yawmode.integer != 1)
+		cl.viewangles[YAW] -= move_event.previous_yaw;
 	cl.viewangles[YAW] += move_event.yaw ;
 	cl.viewangles[ROLL] = move_event.roll ;
 }

@@ -26,4 +26,6 @@
 	<uses-feature android:glEsVersion="0x00030000" android:required="true"/>
 	<!-- Allow reading of the appropriate lens distortion file for the device. -->
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+	<!-- Seems the S6 needs internet permission too -->
+	<uses-permission android:name="android.permission.INTERNET"/>	
 </manifest>

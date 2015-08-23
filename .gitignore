@@ -43,6 +43,15 @@ Temporary Items
 .apdisk
 
 # build files
-.o
-.d
+*.o
+*.d
 
+#binaries
+*.so
+
+#files created by build
+*.apk
+*.ap_
+*.class
+bin/*
+gen/*

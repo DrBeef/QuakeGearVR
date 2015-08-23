@@ -2862,7 +2862,7 @@ static void M_Menu_YawControl_AdjustSliders (int dir)
 			Cvar_SetValueQuick (&cl_comfort, value);
 		}
 	else if (yawcontrol_cursor == optnum++  && cl_yawmode.integer == 2)
-		Cvar_SetValueQuick (&cl_yawspeed, min((cl_yawspeed.value + (dir * 10)), 300));
+		Cvar_SetValueQuick (&cl_yawspeed, bound(10, (cl_yawspeed.value + (dir * 10)), 300));
 }
 
 static void M_Menu_YawControl_Key (int key, int ascii)
@@ -2936,7 +2936,7 @@ static void M_Menu_YawControl_Draw (void)
 		M_Options_PrintCommand("         Mode: Stick-Yaw", true);
 
 	M_Options_PrintSlider(  "Comfort Mode Turn Angle", cl_yawmode.integer == 1, cl_comfort.value, 30, 180);
-	M_Options_PrintSlider(  "   Stick Yaw Turn Speed", cl_yawmode.integer == 2, cl_yawspeed.value, 10, 250);
+	M_Options_PrintSlider(  "   Stick Yaw Turn Speed", cl_yawmode.integer == 2, cl_yawspeed.value, 10, 300);
 }
 
 //=============================================================================

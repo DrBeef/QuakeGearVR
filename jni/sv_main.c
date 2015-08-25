@@ -3306,7 +3306,10 @@ void SV_SpawnServer (const char *server)
 	else
 	{
 		// open server port
-		NetConn_OpenServerPorts(true);
+		//NetConn_OpenServerPorts(true);
+
+		//Just use the loop connection
+		NetConn_OpenServerPorts(0);
 	}
 
 //

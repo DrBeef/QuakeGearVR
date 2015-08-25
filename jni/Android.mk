@@ -97,6 +97,7 @@ SRC_COMMON= \
 	r_sky.c \
 	r_sprites.c \
 	sbar.c \
+	snprintf.c \
 	sv_demo.c \
 	sv_main.c \
 	sv_move.c \

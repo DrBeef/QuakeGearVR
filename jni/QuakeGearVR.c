@@ -28,6 +28,7 @@ Copyright	:	Copyright 2015 Oculus VR, LLC. All Rights reserved.
 #include <GLES3/gl3ext.h>
 
 #include <qtypes.h>
+#include <menu.h>
 
 #if !defined( EGL_OPENGL_ES3_BIT_KHR )
 #define EGL_OPENGL_ES3_BIT_KHR		0x0040
@@ -66,6 +67,9 @@ extern void QGVR_SetResolution(int width, int height);
 extern void QGVR_Analog(int enable,float x,float y);
 extern void QGVR_MotionEvent(float delta, float dx, float dy);
 extern int main (int argc, char **argv);
+
+//static void M_ToggleMenu(int mode);
+
 
 static JavaVM *jVM;
 static jobject audioBuffer=0;
@@ -110,6 +114,13 @@ float GVR_GetSeparation()
 		separation = meters_to_units * 0.065;
 	}
 	return separation;
+}
+
+
+static int returnvalue = -1;
+void GVR_exit(int exitCode)
+{
+	returnvalue = exitCode;
 }
 
 vec3_t hmdorientation;
@@ -1116,6 +1127,9 @@ void * AppThreadFunction( void * parm )
 	int argc =1; char *argv[] = { "quake" };
 	main(argc, argv);
 
+	//Ensure game starts with credits active
+	MR_ToggleMenu(2);
+
 	for ( bool destroyed = false; destroyed == false; )
 	{
 		for ( ; ; )
@@ -1182,6 +1196,9 @@ void * AppThreadFunction( void * parm )
 
 		// Hand over the eye images to the time warp.
 		vrapi_SubmitFrame( appState.Ovr, &parms );
+
+		if (returnvalue != -1)
+			destroyed = true;
 	}
 
 	ovrRenderer_Destroy( &appState.Renderer );

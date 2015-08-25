@@ -33,7 +33,7 @@ static cvar_t menu_progs = { 0, "menu_progs", "menu.dat", "name of quakec menu.d
 
 static int NehGameType;
 
-enum m_state_e m_state;
+enum m_state_e m_state = m_main;
 char m_return_reason[128];
 
 extern vec3_t hmdorientation;
@@ -44,14 +44,16 @@ int Menu_GetYOffset()
 	return (320 * ((hmdorientation[PITCH]) / -90.0f)) + 80;
 }
 
+//Record yaw at the moment the menu is invoked
+static float hmdYaw = 0;
 int Menu_GetXOffset()
 {
 	//This will give the Menu depth in the 3D space
-	int yaw = (hmdorientation[YAW] * 3);
+	int yaw = ((hmdorientation[YAW] - hmdYaw) * 3);
 	//rudimentary clamp
 	yaw = (yaw > 110) ? 110 : yaw;
 	yaw = (yaw < -110) ? -110 : yaw;
-	return (r_stereo_side ? -30 : 30) + yaw;
+	return (r_stereo_side ? -25 : 25) + yaw;
 }
 
 
@@ -304,7 +306,14 @@ static void M_ToggleMenu(int mode)
 	{
 		if(mode == 0)
 			return; // the menu is off, and we want it off
-		M_Menu_Main_f ();
+
+		hmdYaw = hmdorientation[YAW];
+
+		if (mode == 1)
+			M_Menu_Main_f();
+		else
+			//These are only shown at the start of the game
+			M_Menu_Credits_f();
 	}
 	else
 	{
@@ -1629,7 +1638,6 @@ static void M_Menu_Options_AdjustSliders (int dir)
 	else if (options_cursor == optnum++) ;
 	else if (options_cursor == optnum++) ;
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&crosshair, bound(0, crosshair.integer + dir, 7));
-	else if (options_cursor == optnum++) Cvar_SetValueQuick(&sensitivity, bound(1, sensitivity.value + dir * 0.5, 50));
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&m_pitch, -m_pitch.value);
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&scr_fov, bound(1, scr_fov.integer + dir * 1, 170));
 	else if (options_cursor == optnum++)
@@ -1718,7 +1726,6 @@ static void M_Options_Draw (void)
 	M_Options_PrintCommand( "     Reset to defaults", true);
 	M_Options_PrintCommand( "      Yaw Control Mode", true);
 	M_Options_PrintSlider(  "             Crosshair", true, crosshair.value, 0, 7);
-	M_Options_PrintSlider(  "           Mouse Speed", true, sensitivity.value, 1, 50);
 	M_Options_PrintCheckbox("          Invert Mouse", true, m_pitch.value < 0);
 	M_Options_PrintSlider(  "         Field of View", true, scr_fov.integer, 1, 170);
 	M_Options_PrintCheckbox("            Always Run", true, cl_forwardspeed.value > 200);
@@ -2862,7 +2869,7 @@ static void M_Menu_YawControl_AdjustSliders (int dir)
 			Cvar_SetValueQuick (&cl_comfort, value);
 		}
 	else if (yawcontrol_cursor == optnum++  && cl_yawmode.integer == 2)
-		Cvar_SetValueQuick (&cl_yawspeed, bound(10, (cl_yawspeed.value + (dir * 10)), 300));
+		Cvar_SetValueQuick (&sensitivity, bound(1, (sensitivity.value + (dir * 0.25)), 10));
 }
 
 static void M_Menu_YawControl_Key (int key, int ascii)
@@ -2936,7 +2943,16 @@ static void M_Menu_YawControl_Draw (void)
 		M_Options_PrintCommand("         Mode: Stick-Yaw", true);
 
 	M_Options_PrintSlider(  "Comfort Mode Turn Angle", cl_yawmode.integer == 1, cl_comfort.value, 30, 180);
-	M_Options_PrintSlider(  "   Stick Yaw Turn Speed", cl_yawmode.integer == 2, cl_yawspeed.value, 10, 300);
+	M_Options_PrintSlider(  "   Stick Yaw Turn Speed", cl_yawmode.integer == 2, sensitivity.value, 1, 10);
+	if (cl_yawmode.integer == 2)
+	{
+		M_Options_PrintCommand(" ", true);
+		M_Options_PrintCommand(" ", true);
+		M_Options_PrintCommand("WARNING: Yaw controlled by stick can", true);
+		M_Options_PrintCommand("induce severe nausea in those not used to it.", true);
+		M_Options_PrintCommand(" ", true);
+		M_Options_PrintCommand("* Using this mode is at your own risk! *", true);
+	}
 }
 
 //=============================================================================
@@ -3323,20 +3339,56 @@ void M_Menu_Credits_f (void)
 }
 
 
+static const char *m_credits_message[9];
+static int M_CreditsMessage(const char *line1, const char *line2, const char *line3, const char *line4, const char *line5, const char *line6, const char *line7, const char *line8)
+{
+	m_credits_message[0] = line1;
+	m_credits_message[1] = line2;
+	m_credits_message[2] = line3;
+	m_credits_message[3] = line4;
+	m_credits_message[4] = line5;
+	m_credits_message[5] = line6;
+	m_credits_message[6] = line7;
+	m_credits_message[7] = line8;
+	m_credits_message[8] = NULL;
+	return 1;
+}
 
 static void M_Credits_Draw (void)
 {
-	M_Background(640, 480);
-	M_DrawPic (0, 0, "gfx/creditsmiddle");
-	M_Print (640/2 - 14/2*8, 236, "Coming soon...");
-	M_DrawPic (0, 0, "gfx/creditstop");
-	M_DrawPic (0, 433, "gfx/creditsbottom");
+	M_CreditsMessage(
+			"     -=  QUAKE for GearVR  =-      ",
+			"  Developer - Simon Brown (@DrBeef)",
+			"  With special thanks to..         ",
+			"  Testing            - mallmagician",
+			"                     - baggyg      ",
+			"  DarkPlaces Engine  - Lord Havoc  ",
+			"",
+			"      ** Please Press Start **    ");
+	int i, l, linelength, firstline, lastline, lines;
+	for (i = 0, linelength = 0, firstline = 9999, lastline = -1;m_credits_message[i];i++)
+	{
+		if ((l = (int)strlen(m_credits_message[i])))
+		{
+			if (firstline > i)
+				firstline = i;
+			if (lastline < i)
+				lastline = i;
+			if (linelength < l)
+				linelength = l;
+		}
+	}
+	lines = (lastline - firstline) + 1;
+	M_Background(linelength * 8 + 16, lines * 8 + 16);
+	M_DrawTextBox(0, 0, linelength, lines); //this is less obtrusive than hacking up the M_DrawTextBox function
+	for (i = 0, l = firstline;i < lines;i++, l++)
+		M_Print(8 + 4 * (linelength - strlen(m_credits_message[l])), 8 + 8 * i, m_credits_message[l]);
 }
 
 
 static void M_Credits_Key (int key, int ascii)
 {
-		M_Menu_Main_f ();
+	M_Menu_Main_f ();
 }
 
 //=============================================================================

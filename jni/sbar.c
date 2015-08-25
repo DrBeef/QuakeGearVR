@@ -1329,11 +1329,11 @@ int Sbar_GetYOffset()
 int Sbar_GetXOffset()
 {
 	//This will give the status bar depth in the 3D space
-	int yaw = (hmdorientation[YAW] * 3);
+	int yaw = 0;//(hmdorientation[YAW] * 3);
 	//rudimentary clamp
-	yaw = (yaw > 40) ? 40 : yaw;
-	yaw = (yaw < -40) ? -40 : yaw;
-	return (r_stereo_side ? -30 : 30) + yaw;
+	//yaw = (yaw > 40) ? 40 : yaw;
+	//yaw = (yaw < -40) ? -40 : yaw;
+	return (r_stereo_side ? -20 : 20) + yaw;
 }
 
 /*

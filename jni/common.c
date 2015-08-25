@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "utf8lib.h"
 
+#include "snprintf.h"
+
 cvar_t registered = {0, "registered","0", "indicates if this is running registered quake (whether gfx/pop.lmp was found)"};
 cvar_t cmdline = {0, "cmdline","0", "contains commandline the engine was launched with"};
 
@@ -1661,11 +1663,8 @@ int dpvsnprintf (char *buffer, size_t buffersize, const char *format, va_list ar
 {
 	int result;
 
-#if _MSC_VER >= 1400
-	result = _vsnprintf_s (buffer, buffersize, _TRUNCATE, format, args);
-#else
 	result = vsnprintf (buffer, buffersize, format, args);
-#endif
+
 	if (result < 0 || (size_t)result >= buffersize)
 	{
 		buffer[buffersize - 1] = '\0';

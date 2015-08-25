@@ -225,7 +225,7 @@ char *va(char *buf, size_t buflen, const char *format, ...) DP_FUNC_PRINTF(3);
 #ifdef vsnprintf
 # undef vsnprintf
 #endif
-#define vsnprintf DO_NOT_USE_VSNPRINTF__USE_DPVSNPRINTF
+//#define vsnprintf DO_NOT_USE_VSNPRINTF__USE_DPVSNPRINTF
 
 // dpsnprintf and dpvsnprintf
 // return the number of printed characters, excluding the final '\0'

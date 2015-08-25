@@ -24,6 +24,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "thread.h"
 #include "lhnet.h"
 
+#define HAVE_SNPRINTF
+#define PREFER_PORTABLE_SNPRINTF
+#include "snprintf.h"
+
 // for secure rcon authentication
 #include "hmac.h"
 #include "mdfour.h"
@@ -1974,7 +1978,7 @@ static int NetConn_ClientParsePacket(lhnetsocket_t *mysocket, unsigned char *dat
 			if(cl_net_extresponse_count > NET_EXTRESPONSE_MAX)
 				cl_net_extresponse_count = NET_EXTRESPONSE_MAX;
 			cl_net_extresponse_last = (cl_net_extresponse_last + 1) % NET_EXTRESPONSE_MAX;
-			dpsnprintf(cl_net_extresponse[cl_net_extresponse_last], sizeof(cl_net_extresponse[cl_net_extresponse_last]), "\"%s\" %s", addressstring2, string + 12);
+			portable_snprintf(cl_net_extresponse[cl_net_extresponse_last], sizeof(cl_net_extresponse[cl_net_extresponse_last]), "\"%s\" %s", addressstring2, string + 12);
 			return true;
 		}
 		if (!strncmp(string, "ping", 4))
@@ -2372,7 +2376,7 @@ static qboolean NetConn_BuildStatusResponse(const char* challenge, char* out_msg
 
 	/// \TODO: we should add more information for the full status string
 	crypto_idstring = Crypto_GetInfoResponseDataString();
-	length = dpsnprintf(out_msg, out_size,
+	length = portable_snprintf(out_msg, out_size,
 						"\377\377\377\377%s\x0A"
 						"\\gamename\\%s\\modname\\%s\\gameversion\\%d\\sv_maxclients\\%d"
 						"\\clients\\%d\\bots\\%d\\mapname\\%s\\hostname\\%s\\protocol\\%d"
@@ -2852,7 +2856,7 @@ static int NetConn_ServerParsePacket(lhnetsocket_t *mysocket, unsigned char *dat
 			}
 			challenge[i].time = realtime;
 			// send the challenge
-			dpsnprintf(response, sizeof(response), "\377\377\377\377challenge %s", challenge[i].string);
+			portable_snprintf(response, sizeof(response), "\377\377\377\377challenge %s", challenge[i].string);
 			response_len = strlen(response) + 1;
 			Crypto_ServerAppendToChallenge(string, length, response, &response_len, sizeof(response));
 			NetConn_Write(mysocket, response, response_len, peeraddress);
@@ -3109,7 +3113,7 @@ static int NetConn_ServerParsePacket(lhnetsocket_t *mysocket, unsigned char *dat
 			if(sv_net_extresponse_count > NET_EXTRESPONSE_MAX)
 				sv_net_extresponse_count = NET_EXTRESPONSE_MAX;
 			sv_net_extresponse_last = (sv_net_extresponse_last + 1) % NET_EXTRESPONSE_MAX;
-			dpsnprintf(sv_net_extresponse[sv_net_extresponse_last], sizeof(sv_net_extresponse[sv_net_extresponse_last]), "'%s' %s", addressstring2, string + 12);
+			portable_snprintf(sv_net_extresponse[sv_net_extresponse_last], sizeof(sv_net_extresponse[sv_net_extresponse_last]), "'%s' %s", addressstring2, string + 12);
 			return true;
 		}
 		if (!strncmp(string, "ping", 4))
@@ -3488,7 +3492,7 @@ void NetConn_QueryMasters(qboolean querydp, qboolean queryqw)
 					cmdname = "getservers";
 					extraoptions = "";
 				}
-				dpsnprintf(request, sizeof(request), "\377\377\377\377%s %s %u empty full%s", cmdname, gamename, NET_PROTOCOL_VERSION, extraoptions);
+				portable_snprintf(request, sizeof(request), "\377\377\377\377%s %s %u empty full%s", cmdname, gamename, NET_PROTOCOL_VERSION, extraoptions);
 
 				// search internet
 				for (masternum = 0;sv_masters[masternum].name;masternum++)
@@ -3529,7 +3533,7 @@ void NetConn_QueryMasters(qboolean querydp, qboolean queryqw)
 
 					// build the getservers message to send to the qwmaster master servers
 					// note this has no -1 prefix, and the trailing nul byte is sent
-					dpsnprintf(request, sizeof(request), "c\n");
+					portable_snprintf(request, sizeof(request), "c\n");
 				}
 
 				// search internet

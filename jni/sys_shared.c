@@ -39,6 +39,7 @@ char *Sys_TimeString(const char *timeformat)
 	return sys_timestring;
 }
 
+extern GVR_exit(int exitCode);
 
 extern qboolean host_shuttingdown;
 void Sys_Quit (int returnvalue)
@@ -47,7 +48,9 @@ void Sys_Quit (int returnvalue)
 		Sys_AllowProfiling(false);
 	host_shuttingdown = true;
 	Host_Shutdown();
-	exit(returnvalue);
+
+	//Inform the main rendering loop we are exiting the game
+	GVR_exit(returnvalue);
 }
 
 #if defined(__linux__) || defined(__FreeBSD__)

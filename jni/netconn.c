@@ -1815,7 +1815,7 @@ static int NetConn_ClientParsePacket(lhnetsocket_t *mysocket, unsigned char *dat
 			// update the server IP in the userinfo (QW servers expect this, and it is used by the reconnect command)
 			InfoString_SetValue(cls.userinfo, sizeof(cls.userinfo), "*ip", addressstring2);
 			// TODO: add userinfo stuff here instead of using NQ commands?
-			NetConn_WriteString(mysocket, va(vabuf, sizeof(vabuf), "\377\377\377\377connect\\protocol\\darkplaces 3\\protocols\\%s%s\\challenge\\%s", protocolnames, cls.connect_userinfo, string + 10), peeraddress);
+			NetConn_WriteString(mysocket, portable_va(vabuf, sizeof(vabuf), "\377\377\377\377connect\\protocol\\darkplaces 3\\protocols\\%s%s\\challenge\\%s", protocolnames, cls.connect_userinfo, string + 10), peeraddress);
 			return true;
 		}
 		if (length == 6 && !memcmp(string, "accept", 6) && cls.connect_trying)
@@ -1999,7 +1999,7 @@ static int NetConn_ClientParsePacket(lhnetsocket_t *mysocket, unsigned char *dat
 			cls.qw_qport = qport.integer;
 			// update the server IP in the userinfo (QW servers expect this, and it is used by the reconnect command)
 			InfoString_SetValue(cls.userinfo, sizeof(cls.userinfo), "*ip", addressstring2);
-			NetConn_WriteString(mysocket, va(vabuf, sizeof(vabuf), "\377\377\377\377connect %i %i %i \"%s%s\"\n", 28, cls.qw_qport, atoi(string + 1), cls.userinfo, cls.connect_userinfo), peeraddress);
+			NetConn_WriteString(mysocket, portable_va(vabuf, sizeof(vabuf), "\377\377\377\377connect %i %i %i \"%s%s\"\n", 28, cls.qw_qport, atoi(string + 1), cls.userinfo, cls.connect_userinfo), peeraddress);
 			return true;
 		}
 		if (length >= 1 && string[0] == 'j' && cls.connect_trying)
@@ -2905,7 +2905,7 @@ static int NetConn_ServerParsePacket(lhnetsocket_t *mysocket, unsigned char *dat
 			{
 				if (developer_extra.integer)
 					Con_Printf("Datagram_ParseConnectionless: sending \"reject %s\" to %s.\n", sv_public_rejectreason.string, addressstring2);
-				NetConn_WriteString(mysocket, va(vabuf, sizeof(vabuf), "\377\377\377\377reject %s", sv_public_rejectreason.string), peeraddress);
+				NetConn_WriteString(mysocket, portable_va(vabuf, sizeof(vabuf), "\377\377\377\377reject %s", sv_public_rejectreason.string), peeraddress);
 				return true;
 			}
 

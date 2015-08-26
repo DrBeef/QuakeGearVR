@@ -214,6 +214,7 @@ void COM_Shutdown (void);
 void COM_InitGameType (void);
 
 char *va(char *buf, size_t buflen, const char *format, ...) DP_FUNC_PRINTF(3);
+char *portable_va(char *buf, size_t buflen, const char *format, ...) DP_FUNC_PRINTF(3);
 // does a varargs printf into provided buffer, returns buffer (so it can be called in-line unlike dpsnprintf)
 
 

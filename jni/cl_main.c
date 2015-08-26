@@ -56,6 +56,8 @@ cvar_t m_side = {CVAR_SAVE, "m_side","0.8","mouse side speed multiplier"};
 
 cvar_t freelook = {CVAR_SAVE, "freelook", "1","mouse controls pitch instead of forward/back"};
 
+cvar_t cl_nosplashscreen = {CVAR_SAVE, "cl_nosplashscreen", "0", "prevents the credits splashscreen from being displayed on game start" };
+
 cvar_t cl_autodemo = {CVAR_SAVE, "cl_autodemo", "0", "records every game played, using the date/time and map name to name the demo file" };
 cvar_t cl_autodemo_nameformat = {CVAR_SAVE, "cl_autodemo_nameformat", "autodemos/%Y-%m-%d_%H-%M", "The format of the cl_autodemo filename, followed by the map name (the date is encoded using strftime escapes)" };
 cvar_t cl_autodemo_delete = {0, "cl_autodemo_delete", "0", "Delete demos after recording.  This is a bitmask, bit 1 gives the default, bit 0 the value for the current demo.  Thus, the values are: 0 = disabled; 1 = delete current demo only; 2 = delete all demos except the current demo; 3 = delete all demos from now on" };
@@ -2029,7 +2031,9 @@ static void CL_TimeRefresh_f (void)
 	{
 		Matrix4x4_CreateFromQuakeEntity(&r_refdef.view.matrix, r_refdef.view.origin[0], r_refdef.view.origin[1], r_refdef.view.origin[2], 0, i / 128.0 * 360.0, 0, 1);
 		r_refdef.view.quality = 1;
-		CL_UpdateScreen(0.0);
+		CL_BeginUpdateScreen();
+		SCR_DrawScreen();
+		CL_EndUpdateScreen();
 	}
 	timedelta = Sys_DirtyTime() - timestart;
 
@@ -2436,6 +2440,9 @@ void CL_Init (void)
 	Cmd_AddCommand ("cl_modelindexlist", CL_ModelIndexList_f, "list information on all models in the client modelindex");
 	// Support Client-side Sound Index List
 	Cmd_AddCommand ("cl_soundindexlist", CL_SoundIndexList_f, "list all sounds in the client soundindex");
+
+
+	Cvar_RegisterVariable (&cl_nosplashscreen);
 
 	Cvar_RegisterVariable (&cl_autodemo);
 	Cvar_RegisterVariable (&cl_autodemo_nameformat);

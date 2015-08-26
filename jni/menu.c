@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mprogdefs.h"
 
+#define QGVR_VERSION  "0.1"
+
 #define TYPE_DEMO 1
 #define TYPE_GAME 2
 #define TYPE_BOTH 3
@@ -293,6 +295,8 @@ static void M_DrawTextBox(float x, float y, float width, float height)
 
 //int m_save_demonum;
 
+extern cvar_t cl_nosplashscreen;
+
 /*
 ================
 M_ToggleMenu
@@ -309,7 +313,7 @@ static void M_ToggleMenu(int mode)
 
 		hmdYaw = hmdorientation[YAW];
 
-		if (mode == 1)
+		if (mode == 1 || cl_nosplashscreen.integer == 1)
 			M_Menu_Main_f();
 		else
 			//These are only shown at the start of the game
@@ -1607,9 +1611,7 @@ static void M_DrawCheckbox (int x, int y, int on)
 }
 
 
-//#define OPTIONS_ITEMS 25 aule was here
-#define OPTIONS_ITEMS 27
-
+#define OPTIONS_ITEMS 26
 
 static int options_cursor;
 
@@ -1777,37 +1779,37 @@ static void M_Options_Key (int k, int ascii)
 		case 3:
 			M_Menu_YawControl_f ();
 			break;
-		case 11:
+		case 10:
 			M_Menu_Options_ColorControl_f ();
 			break;
-		case 17: // Customize Effects
+		case 16: // Customize Effects
 			M_Menu_Options_Effects_f ();
 			break;
-		case 18: // Effects: Quake
+		case 17: // Effects: Quake
 			Cbuf_AddText("cl_particles 1;cl_particles_quake 1;cl_particles_quality 1;cl_particles_explosions_shell 0;r_explosionclip 1;cl_stainmaps 0;cl_stainmaps_clearonload 1;cl_decals 0;cl_particles_bulletimpacts 1;cl_particles_smoke 1;cl_particles_sparks 1;cl_particles_bubbles 1;cl_particles_blood 1;cl_particles_blood_alpha 1;cl_particles_blood_bloodhack 0;cl_beams_polygons 0;cl_beams_instantaimhack 0;cl_beams_quakepositionhack 1;cl_beams_lightatend 0;r_lerpmodels 1;r_lerpsprites 1;r_lerplightstyles 0;gl_polyblend 1;r_skyscroll1 1;r_skyscroll2 2;r_waterwarp 1;r_wateralpha 1;r_waterscroll 1\n");
 			break;
-		case 19: // Effects: Normal
+		case 18: // Effects: Normal
 			Cbuf_AddText("cl_particles 1;cl_particles_quake 0;cl_particles_quality 1;cl_particles_explosions_shell 0;r_explosionclip 1;cl_stainmaps 0;cl_stainmaps_clearonload 1;cl_decals 1;cl_particles_bulletimpacts 1;cl_particles_smoke 1;cl_particles_sparks 1;cl_particles_bubbles 1;cl_particles_blood 1;cl_particles_blood_alpha 1;cl_particles_blood_bloodhack 1;cl_beams_polygons 1;cl_beams_instantaimhack 0;cl_beams_quakepositionhack 1;cl_beams_lightatend 0;r_lerpmodels 1;r_lerpsprites 1;r_lerplightstyles 0;gl_polyblend 1;r_skyscroll1 1;r_skyscroll2 2;r_waterwarp 1;r_wateralpha 1;r_waterscroll 1\n");
 			break;
-		case 20: // Effects: High
+		case 19: // Effects: High
 			Cbuf_AddText("cl_particles 1;cl_particles_quake 0;cl_particles_quality 2;cl_particles_explosions_shell 0;r_explosionclip 1;cl_stainmaps 1;cl_stainmaps_clearonload 1;cl_decals 1;cl_particles_bulletimpacts 1;cl_particles_smoke 1;cl_particles_sparks 1;cl_particles_bubbles 1;cl_particles_blood 1;cl_particles_blood_alpha 1;cl_particles_blood_bloodhack 1;cl_beams_polygons 1;cl_beams_instantaimhack 0;cl_beams_quakepositionhack 1;cl_beams_lightatend 0;r_lerpmodels 1;r_lerpsprites 1;r_lerplightstyles 0;gl_polyblend 1;r_skyscroll1 1;r_skyscroll2 2;r_waterwarp 1;r_wateralpha 1;r_waterscroll 1\n");
 			break;
-		case 21:
+		case 20:
 			M_Menu_Options_Graphics_f ();
 			break;
-		case 22: // Lighting: Flares
+		case 21: // Lighting: Flares
 			Cbuf_AddText("r_coronas 1;gl_flashblend 1;r_shadow_gloss 0;r_shadow_realtime_dlight 0;r_shadow_realtime_dlight_shadows 0;r_shadow_realtime_world 0;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 0");
 			break;
-		case 23: // Lighting: Normal
+		case 22: // Lighting: Normal
 			Cbuf_AddText("r_coronas 1;gl_flashblend 0;r_shadow_gloss 1;r_shadow_realtime_dlight 1;r_shadow_realtime_dlight_shadows 0;r_shadow_realtime_world 0;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 0");
 			break;
-		case 24: // Lighting: High
+		case 23: // Lighting: High
 			Cbuf_AddText("r_coronas 1;gl_flashblend 0;r_shadow_gloss 1;r_shadow_realtime_dlight 1;r_shadow_realtime_dlight_shadows 1;r_shadow_realtime_world 0;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 1");
 			break;
-		case 25: // Lighting: Full
+		case 24: // Lighting: Full
 			Cbuf_AddText("r_coronas 1;gl_flashblend 0;r_shadow_gloss 1;r_shadow_realtime_dlight 1;r_shadow_realtime_dlight_shadows 1;r_shadow_realtime_world 1;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 1");
 			break;
-		case 26:
+		case 25:
 			M_Menu_ModList_f ();
 			break;
 		default:
@@ -3357,7 +3359,7 @@ static int M_CreditsMessage(const char *line1, const char *line2, const char *li
 static void M_Credits_Draw (void)
 {
 	M_CreditsMessage(
-			"     -=  QUAKE for GearVR  =-      ",
+			"    -=  QUAKE for GearVR "QGVR_VERSION" =-    ",
 			"  Developer - Simon Brown (@DrBeef)",
 			"  With special thanks to..         ",
 			"  Testing            - mallmagician",

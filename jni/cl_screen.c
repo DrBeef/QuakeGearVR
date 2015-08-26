@@ -2058,7 +2058,7 @@ void R_ClearScreen(qboolean fogcolor)
 
 extern int r_stereo_side;
 
-static void SCR_DrawScreen ()
+/*static*/ void SCR_DrawScreen ()
 {
 	Draw_Frame();
 
@@ -2169,7 +2169,8 @@ static void SCR_DrawScreen ()
 
 	SCR_DrawInfobar();
 
-	SCR_DrawTouchscreenOverlay();
+	// No need for this
+	//SCR_DrawTouchscreenOverlay();
 
 	if (r_timereport_active)
 		R_TimeReport("2d");
@@ -2579,7 +2580,7 @@ extern cvar_t cl_minfps_qualityhysteresis;
 extern cvar_t cl_minfps_qualitystepmax;
 extern cvar_t cl_minfps_force;
 static double cl_updatescreen_quality = 1;
-void CL_UpdateScreen()
+void CL_BeginUpdateScreen()
 {
 	vec3_t vieworigin;
 	static double drawscreenstart = 0.0;
@@ -2741,9 +2742,11 @@ void CL_UpdateScreen()
 
 	// calculate r_refdef.view.quality
 	r_refdef.view.quality = cl_updatescreen_quality;
+}
 
-	SCR_DrawScreen();
 
+void CL_EndUpdateScreen()
+{
 	SCR_CaptureVideo();
 
 	if (qglFlush)

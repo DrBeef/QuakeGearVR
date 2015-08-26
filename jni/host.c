@@ -1006,18 +1006,23 @@ void Host_BeginFrame(void)
 
 			R_TimeReport("client");
 		}
+
+	CL_BeginUpdateScreen();
 }
 
 void Host_Frame(int eye)
 {
 	r_stereo_side = eye;
 
-	CL_UpdateScreen();
+	SCR_DrawScreen();
+
 	R_TimeReport("render");
 }
 
 void Host_EndFrame(void)
 {
+	CL_EndUpdateScreen();
+
 	if (cls.state != ca_dedicated && (cl_timer > 0 || cls.timedemo || ((vid_activewindow ? cl_maxfps : cl_maxidlefps).value < 1)))
 	{
 			if (host_speeds.integer)

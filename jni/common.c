@@ -1632,6 +1632,16 @@ char *va(char *buf, size_t buflen, const char *format, ...)
 	return buf;
 }
 
+char *portable_va(char *buf, size_t buflen, const char *format, ...)
+{
+	va_list argptr;
+
+	va_start (argptr, format);
+	portable_snprintf (buf, buflen, format,argptr);
+	va_end (argptr);
+
+	return buf;
+}
 
 //======================================
 

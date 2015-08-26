@@ -46,11 +46,11 @@ void Sys_Quit (int returnvalue)
 {
 	if (COM_CheckParm("-profilegameonly"))
 		Sys_AllowProfiling(false);
-	host_shuttingdown = true;
-	Host_Shutdown();
 
 	//Inform the main rendering loop we are exiting the game
-	GVR_exit(returnvalue);
+	GVR_exit(1);
+	//host_shuttingdown = true;
+	//Host_Shutdown();
 }
 
 #if defined(__linux__) || defined(__FreeBSD__)

@@ -3341,18 +3341,27 @@ void M_Menu_Credits_f (void)
 }
 
 
-static const char *m_credits_message[9];
-static int M_CreditsMessage(const char *line1, const char *line2, const char *line3, const char *line4, const char *line5, const char *line6, const char *line7, const char *line8)
+static const char *m_credits_message[11];
+static int M_CreditsMessage(const char *line1, const char *line2,
+		const char *line3, const char *line4,
+		const char *line5, const char *line6,
+		const char *line7, const char *line8,
+		const char *line9, const char *line10,
+		const char *line11)
 {
-	m_credits_message[0] = line1;
-	m_credits_message[1] = line2;
-	m_credits_message[2] = line3;
-	m_credits_message[3] = line4;
-	m_credits_message[4] = line5;
-	m_credits_message[5] = line6;
-	m_credits_message[6] = line7;
-	m_credits_message[7] = line8;
-	m_credits_message[8] = NULL;
+	int line = 0;
+	m_credits_message[line++] = line1;
+	m_credits_message[line++] = line2;
+	m_credits_message[line++] = line3;
+	m_credits_message[line++] = line4;
+	m_credits_message[line++] = line5;
+	m_credits_message[line++] = line6;
+	m_credits_message[line++] = line7;
+	m_credits_message[line++] = line8;
+	m_credits_message[line++] = line9;
+	m_credits_message[line++] = line10;
+	m_credits_message[line++] = line11;
+	m_credits_message[line++] = NULL;
 	return 1;
 }
 
@@ -3360,13 +3369,17 @@ static void M_Credits_Draw (void)
 {
 	M_CreditsMessage(
 			"    -=  QUAKE for GearVR "QGVR_VERSION" =-    ",
+			"",
 			"  Developer - Simon Brown (@DrBeef)",
+			"",
 			"  With special thanks to..         ",
 			"  Testing            - mallmagician",
 			"                     - baggyg      ",
 			"  DarkPlaces Engine  - Lord Havoc  ",
+			"  QI4A               - n0n3m4      ",
 			"",
 			"      ** Please Press Start **    ");
+
 	int i, l, linelength, firstline, lastline, lines;
 	for (i = 0, linelength = 0, firstline = 9999, lastline = -1;m_credits_message[i];i++)
 	{
@@ -3516,7 +3529,11 @@ static void M_Quit_Key (int key, int ascii)
 		break;
 
 	default:
-		Host_Quit_f ();
+		{
+			Host_Quit_f ();
+			key_dest = key_game;
+			m_state = m_none;
+		}
 		break;
 	}
 }

@@ -11,6 +11,7 @@ import android.media.AudioTrack;
 public class QGVRAudioCallback {
 
 	public QuakeGearVRAudioTrack mAudioTrack;	
+	public ScheduledThreadPoolExecutor stpe;
 	byte[] mAudioData;
 	public static boolean reqThreadrunning=true;	
 	public void initAudio(int size)
@@ -26,7 +27,7 @@ public class QGVRAudioCallback {
 		AudioFormat.ENCODING_PCM_16BIT,bufferSize,AudioTrack.MODE_STREAM);
 		mAudioTrack.play();
 		long sleeptime=(size*1000000000l)/(2*2*sampleFreq);
-		ScheduledThreadPoolExecutor stpe=new ScheduledThreadPoolExecutor(5);
+		stpe=new ScheduledThreadPoolExecutor(5);
 		stpe.scheduleAtFixedRate(new Runnable() {			
 			@Override
 			public void run() {
@@ -67,6 +68,19 @@ public class QGVRAudioCallback {
 		reqThreadrunning=true;
 	}
 
+	public void terminateAudio()
+	{
+		mAudioTrack.pause();
+		mAudioTrack.flush();
+		mAudioTrack.release();
+
+		mAudioTrack = null;
+		
+		reqThreadrunning=false;
+		
+		stpe.shutdown();
+		stpe = null;
+	}
 }
 
 class QuakeGearVRAudioTrack extends AudioTrack

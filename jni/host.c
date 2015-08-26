@@ -1425,11 +1425,11 @@ void Host_Shutdown(void)
 	// AK shutdown PRVM
 	// AK hmm, no PRVM_Shutdown(); yet
 
-	CL_Video_Shutdown();
+	//CL_Video_Shutdown();
 
 	Host_SaveConfig();
 
-	CDAudio_Shutdown ();
+	//CDAudio_Shutdown ();
 	S_Terminate ();
 	Curl_Shutdown ();
 	NetConn_Shutdown ();

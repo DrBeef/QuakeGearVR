@@ -52,7 +52,7 @@ public class QGVRAudioCallback {
 		mAudioTrack.write(mAudioData, 0, len);
 	}
 	
-	public void pause()
+	public void pauseAudio()
 	{
 		if(mAudioTrack == null)
 			return;				
@@ -60,7 +60,7 @@ public class QGVRAudioCallback {
 		reqThreadrunning=false;
 	}
 	
-	public void resume()
+	public void resumeAudio()
 	{
 		if(mAudioTrack == null)
 			return;				

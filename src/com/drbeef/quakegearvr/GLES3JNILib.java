@@ -9,7 +9,7 @@ import android.view.Surface;
 public class GLES3JNILib
 {
 	// Activity lifecycle
-	public static native long onCreate( Activity obj, String fromPackageNameString, String commandString, String uriString );
+	public static native long onCreate( Activity obj, String commandLineParams );
 	public static native void onStart( long handle );
 	public static native void onResume( long handle );
 	public static native void onPause( long handle );

@@ -43,7 +43,7 @@ extern vec3_t hmdorientation;
 //Calculate the y-offset of the status bar dependent on where the user is looking
 int Menu_GetYOffset()
 {
-	return (320 * ((hmdorientation[PITCH]) / -90.0f)) + 80;
+	return ((vid_conheight.value * 0.5) * ((hmdorientation[PITCH]) / -90.0f)) + 80;
 }
 
 //Record yaw at the moment the menu is invoked
@@ -199,7 +199,7 @@ static void M_Background(int width, int height)
 	menu_x = (vid_conwidth.integer - menu_width) * 0.5 + Menu_GetXOffset();
 	menu_y = (vid_conheight.integer - menu_height) * 0.5 + Menu_GetYOffset();
 	//DrawQ_Fill(menu_x, menu_y, menu_width, menu_height, 0, 0, 0, 0.5, 0);
-	DrawQ_Fill(0, 0, vid_conwidth.integer, vid_conheight.integer, 0, 0, 0, 0.5, 0);
+	DrawQ_Fill(0, 0, vid_conwidth.integer, vid_conheight.integer, 0, 0, 0, 0.6, 0);
 }
 
 /*
@@ -3347,7 +3347,7 @@ static int M_CreditsMessage(const char *line1, const char *line2,
 		const char *line5, const char *line6,
 		const char *line7, const char *line8,
 		const char *line9, const char *line10,
-		const char *line11)
+		const char *line11, const char *line12)
 {
 	int line = 0;
 	m_credits_message[line++] = line1;
@@ -3361,6 +3361,7 @@ static int M_CreditsMessage(const char *line1, const char *line2,
 	m_credits_message[line++] = line9;
 	m_credits_message[line++] = line10;
 	m_credits_message[line++] = line11;
+	m_credits_message[line++] = line12;
 	m_credits_message[line++] = NULL;
 	return 1;
 }
@@ -3373,12 +3374,13 @@ static void M_Credits_Draw (void)
 			"  Developer - Simon Brown (@DrBeef)",
 			"",
 			"  With special thanks to..         ",
-			"  Testing            - mallmagician",
+			"  Testers            - mallmagician",
 			"                     - baggyg      ",
-			"  DarkPlaces Engine  - Lord Havoc  ",
+			"  DarkPlaces Engine  - LordHavoc   ",
 			"  QI4A               - n0n3m4      ",
+			"  Icons              - WormSlayer  ",
 			"",
-			"      ** Please Press Start **    ");
+			"       ** Please Press Start **    ");
 
 	int i, l, linelength, firstline, lastline, lines;
 	for (i = 0, linelength = 0, firstline = 9999, lastline = -1;m_credits_message[i];i++)
@@ -3395,9 +3397,9 @@ static void M_Credits_Draw (void)
 	}
 	lines = (lastline - firstline) + 1;
 	M_Background(linelength * 8 + 16, lines * 8 + 16);
-	M_DrawTextBox(0, 0, linelength, lines); //this is less obtrusive than hacking up the M_DrawTextBox function
+	M_DrawTextBox(0, -98, linelength, lines); //this is less obtrusive than hacking up the M_DrawTextBox function
 	for (i = 0, l = firstline;i < lines;i++, l++)
-		M_Print(8 + 4 * (linelength - strlen(m_credits_message[l])), 8 + 8 * i, m_credits_message[l]);
+		M_Print(8 + 4 * (linelength - strlen(m_credits_message[l])), -90 + 8 * i, m_credits_message[l]);
 }
 
 

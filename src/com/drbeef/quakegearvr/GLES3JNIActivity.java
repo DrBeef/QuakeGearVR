@@ -2,12 +2,17 @@
 package com.drbeef.quakegearvr;
 
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Intent;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -43,50 +48,8 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 	private long mNativeHandle;
 	
 	public static QGVRAudioCallback mAudio;
-	
-	// These variables duplicated in VrLib.java!
-	public static final String INTENT_KEY_CMD = "intent_cmd";
-	public static final String INTENT_KEY_FROM_PKG = "intent_pkg";
 
-	public static String getCommandStringFromIntent( Intent intent ) {
-		String commandStr = "";
-		if ( intent != null ) {
-			commandStr = intent.getStringExtra( INTENT_KEY_CMD );
-			if ( commandStr == null ) {
-				commandStr = "";
-			}
-		}
-		return commandStr;
-	}
-
-	public static String getPackageStringFromIntent( Intent intent ) {
-		String packageStr = "";
-		if ( intent != null ) {
-			packageStr = intent.getStringExtra( INTENT_KEY_FROM_PKG );
-			if ( packageStr == null ) {
-				packageStr = "";
-			}
-		}
-		return packageStr;
-	}
-
-	public static String getUriStringFromIntent( Intent intent ) {
-		String uriString = "";
-		if ( intent != null ) {
-			Uri uri = intent.getData();
-			if ( uri != null ) {
-				uriString = uri.toString();
-				if ( uriString == null ) {
-					uriString = "";
-				}
-			}
-		}
-		return uriString;
-	}
-	
-
-
-	@Override protected void onCreate( Bundle icicle )
+	@SuppressLint("SdCardPath") @Override protected void onCreate( Bundle icicle )
 	{
 		Log.v( TAG, "----------------------------------------------------------------" );
 		Log.v( TAG, "GLES3JNIActivity::onCreate()" );
@@ -105,10 +68,32 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		params.screenBrightness = 1.0f;
 		getWindow().setAttributes( params );
 
-		Intent intent = getIntent();
-		String commandString = getCommandStringFromIntent( intent );
-		String fromPackageNameString = getPackageStringFromIntent( intent );
-		String uriString = getUriStringFromIntent( intent );
+	
+		//Read these from a file and pass through 
+		String commandLineParams = new String("quake");
+		
+		//See if user is trying to use command line params
+		if(new File("/sdcard/QGVR/commandline.txt").exists())
+		{
+			BufferedReader br;
+			try {
+				br = new BufferedReader(new FileReader("/sdcard/QGVR/commandline.txt"));
+				String s;
+				StringBuilder sb=new StringBuilder(0);
+				while ((s=br.readLine())!=null)
+					sb.append(s + " ");
+				br.close();
+				
+				commandLineParams = new String(sb.toString());
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	
 		
 		if (mAudio==null)			
 		{
@@ -117,7 +102,7 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		
 		GLES3JNILib.setCallbackObject(mAudio);
 
-		mNativeHandle = GLES3JNILib.onCreate( this, fromPackageNameString, commandString, uriString );
+		mNativeHandle = GLES3JNILib.onCreate( this, commandLineParams );
 	}
 
 	@Override protected void onStart()

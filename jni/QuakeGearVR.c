@@ -75,6 +75,57 @@ static JavaVM *jVM;
 static jobject audioBuffer=0;
 static jobject qgvrCallbackObj=0;
 
+jmethodID android_initAudio;
+jmethodID android_writeAudio;
+jmethodID android_pauseAudio;
+jmethodID android_resumeAudio;
+
+void jni_initAudio(void *buffer, int size)
+{
+	ALOGV("Calling: jni_initAudio");
+    JNIEnv *env;
+    jobject tmp;
+    (*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4);
+    tmp = (*env)->NewDirectByteBuffer(env, buffer, size);
+    audioBuffer = (jobject)(*env)->NewGlobalRef(env, tmp);
+    return (*env)->CallVoidMethod(env, qgvrCallbackObj, android_initAudio, size);
+}
+
+void jni_writeAudio(int offset, int length)
+{
+	ALOGV("Calling: jni_writeAudio");
+	if (audioBuffer==0) return;
+    JNIEnv *env;
+    if (((*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4))<0)
+    {
+    	(*jVM)->AttachCurrentThread(jVM,&env, NULL);
+    }
+    (*env)->CallVoidMethod(env, qgvrCallbackObj, android_writeAudio, audioBuffer, offset, length);
+}
+
+void jni_pauseAudio()
+{
+	ALOGV("Calling: jni_pauseAudio");
+	if (audioBuffer==0) return;
+    JNIEnv *env;
+    if (((*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4))<0)
+    {
+    	(*jVM)->AttachCurrentThread(jVM,&env, NULL);
+    }
+    (*env)->CallVoidMethod(env, qgvrCallbackObj, android_pauseAudio);
+}
+
+void jni_resumeAudio()
+{
+	ALOGV("Calling: jni_resumeAudio");
+	if (audioBuffer==0) return;
+    JNIEnv *env;
+    if (((*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4))<0)
+    {
+    	(*jVM)->AttachCurrentThread(jVM,&env, NULL);
+    }
+    (*env)->CallVoidMethod(env, qgvrCallbackObj, android_resumeAudio);
+}
 
 //Timing stuff for joypad control
 long oldtime=0;
@@ -117,13 +168,84 @@ float GVR_GetSeparation()
 }
 
 
-static int returnvalue = -1;
+int returnvalue = -1;
 void GVR_exit(int exitCode)
 {
 	returnvalue = exitCode;
 }
 
 vec3_t hmdorientation;
+
+
+
+static void UnEscapeQuotes( char *arg )
+{
+	char *last = NULL;
+	while( *arg ) {
+		if( *arg == '"' && *last == '\\' ) {
+			char *c_curr = arg;
+			char *c_last = last;
+			while( *c_curr ) {
+				*c_last = *c_curr;
+				c_last = c_curr;
+				c_curr++;
+			}
+			*c_last = '\0';
+		}
+		last = arg;
+		arg++;
+	}
+}
+
+static int ParseCommandLine(char *cmdline, char **argv)
+{
+	char *bufp;
+	char *lastp = NULL;
+	int argc, last_argc;
+	argc = last_argc = 0;
+	for ( bufp = cmdline; *bufp; ) {
+		while ( isspace(*bufp) ) {
+			++bufp;
+		}
+		if ( *bufp == '"' ) {
+			++bufp;
+			if ( *bufp ) {
+				if ( argv ) {
+					argv[argc] = bufp;
+				}
+				++argc;
+			}
+			while ( *bufp && ( *bufp != '"' || *lastp == '\\' ) ) {
+				lastp = bufp;
+				++bufp;
+			}
+		} else {
+			if ( *bufp ) {
+				if ( argv ) {
+					argv[argc] = bufp;
+				}
+				++argc;
+			}
+			while ( *bufp && ! isspace(*bufp) ) {
+				++bufp;
+			}
+		}
+		if ( *bufp ) {
+			if ( argv ) {
+				*bufp = '\0';
+			}
+			++bufp;
+		}
+		if( argv && last_argc != argc ) {
+			UnEscapeQuotes( argv[last_argc] );
+		}
+		last_argc = argc;
+	}
+	if ( argv ) {
+		argv[argc] = NULL;
+	}
+	return(argc);
+}
 
 /*
 ================================================================================
@@ -613,8 +735,8 @@ static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJ
 
 
 	// Calculate the center view matrix.
-	const ovrHeadModelParms headModelParms = vrapi_DefaultHeadModelParms();
-	const ovrMatrix4f centerEyeViewMatrix = vrapi_GetCenterEyeViewMatrix( &headModelParms, tracking, NULL );
+//	const ovrHeadModelParms headModelParms = vrapi_DefaultHeadModelParms();
+//	const ovrMatrix4f centerEyeViewMatrix = vrapi_GetCenterEyeViewMatrix( &headModelParms, tracking, NULL );
 
 	//Get orientation
 	// We extract Yaw, Pitch, Roll instead of directly using the orientation
@@ -631,7 +753,7 @@ static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJ
 	// Render the eye images.
 	for ( int eye = 0; eye < NUM_EYES; eye++ )
 	{
-		const ovrMatrix4f eyeViewMatrix = vrapi_GetEyeViewMatrix( &headModelParms, &centerEyeViewMatrix, eye );
+//		const ovrMatrix4f eyeViewMatrix = vrapi_GetEyeViewMatrix( &headModelParms, &centerEyeViewMatrix, eye );
 
 		ovrRenderTexture * rt = &renderer->RenderTextures[renderer->BufferIndex][eye];
 		ovrRenderTexture_SetCurrent( rt );
@@ -649,23 +771,25 @@ static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJ
 		QGVR_DrawFrame(eye);
 
 		// Explicitly clear the border texels to black because OpenGL-ES does not support GL_CLAMP_TO_BORDER.
-/*		{
+		{/*
 			// Clear to fully opaque black.
 			GL( glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) );
 			// bottom
 			GL( glScissor( 0, 0, rt->Width, 1 ) );
 			GL( glClear( GL_COLOR_BUFFER_BIT ) );
 			// top
-			GL( glScissor( 0, rt->Height - 1, rt->Width, rt->Height ) );
+			GL( glScissor( 0, rt->Height - 1, rt->Width, 1 ) );
 			GL( glClear( GL_COLOR_BUFFER_BIT ) );
 			// left
 			GL( glScissor( 0, 0, 1, rt->Height ) );
 			GL( glClear( GL_COLOR_BUFFER_BIT ) );
 			// right
-			GL( glScissor( rt->Width - 1, 0, rt->Width, rt->Height ) );
+			GL( glScissor( rt->Width - 1, 0, 1, rt->Height ) );
 			GL( glClear( GL_COLOR_BUFFER_BIT ) );
+
+			GL( glScissor( 0, 0, 0, 0 ) );*/
 		}
-*/
+
 		ovrRenderTexture_Resolve( rt );
 
 		parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[eye].TexId = rt->ColorTexture;
@@ -1081,9 +1205,6 @@ typedef struct
 	ANativeWindow * NativeWindow;
 } ovrAppThread;
 
-jmethodID android_initAudio;
-jmethodID android_writeAudio;
-
 int JNI_OnLoad(JavaVM* vm, void* reserved)
 {
     JNIEnv *env;
@@ -1119,16 +1240,10 @@ void * AppThreadFunction( void * parm )
 	const ovrHmdInfo hmdInfo = vrapi_GetHmdInfo( &appState.Java );
 	ovrRenderer_Create( &appState.Renderer, &hmdInfo );
 
-	ALOGV( "    Initialising Quake Engine" );
-
+	//Always use this folder
 	chdir("/sdcard/QGVR");
 
-	QGVR_SetResolution(1024, 1024);
-	int argc =1; char *argv[] = { "quake" };
-	main(argc, argv);
-
-	//Ensure game starts with credits active
-	MR_ToggleMenu(2);
+	bool quake_initialised = false;
 
 	for ( bool destroyed = false; destroyed == false; )
 	{
@@ -1143,7 +1258,30 @@ void * AppThreadFunction( void * parm )
 
 			switch ( message.Id )
 			{
-				case MESSAGE_ON_CREATE:				{ break; }
+				case MESSAGE_ON_CREATE:
+				{
+					ALOGV( "    Initialising Quake Engine" );
+					QGVR_SetResolution(1024, 1024);
+					char *arg = (char*)ovrMessage_GetPointerParm( &message, 0 );
+					if (arg)
+					{
+						ALOGV("Command line %s", arg);
+					    char **argv;
+					    int argc=0;
+						argv = malloc(sizeof(char*) * 255);
+						argc = ParseCommandLine(strdup(arg), argv);
+						main(argc, argv);
+						quake_initialised = true;
+					}
+					else
+					{
+						int argc =1; char *argv[] = { "quake" };
+						main(argc, argv);
+					}
+					//Ensure game starts with credits active
+					MR_ToggleMenu(2);
+					break;
+				}
 				case MESSAGE_ON_START:				{ break; }
 				case MESSAGE_ON_RESUME:				{ appState.Resumed = true; break; }
 				case MESSAGE_ON_PAUSE:				{ appState.Resumed = false; break; }
@@ -1178,6 +1316,9 @@ void * AppThreadFunction( void * parm )
 			continue;
 		}
 
+		if (!quake_initialised)
+			continue;
+
 		// This is the only place the frame index is incremented, right before
 		// calling vrapi_GetPredictedDisplayTime().
 		appState.FrameIndex++;
@@ -1198,7 +1339,15 @@ void * AppThreadFunction( void * parm )
 		vrapi_SubmitFrame( appState.Ovr, &parms );
 
 		if (returnvalue != -1)
-			destroyed = true;
+		{
+			Host_SaveConfig();
+			jni_pauseAudio();
+			ovr_StartSystemActivity( &appState.Java, PUI_CONFIRM_QUIT, NULL );
+
+			//If we get here, then user has opted not to quite
+			jni_resumeAudio();
+			returnvalue = -1;
+		}
 	}
 
 	ovrRenderer_Destroy( &appState.Renderer );
@@ -1240,9 +1389,20 @@ Activity lifecycle
 */
 
 JNIEXPORT jlong JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onCreate( JNIEnv * env, jclass activityClass, jobject activity,
-		jstring fromPackageName, jstring commandString, jstring uriString)
+		jstring commandLineParams)
 {
 	ALOGV( "    GLES3JNILib::onCreate()" );
+
+	jboolean iscopy;
+    const char *arg = (*env)->GetStringUTFChars(env, commandLineParams, &iscopy);
+
+    char *cmdLine = NULL;
+    if (arg && strlen(arg))
+    {
+    	cmdLine = strdup(arg);
+    }
+
+	(*env)->ReleaseStringUTFChars(env, commandLineParams, arg);
 
 	ovrAppThread * appThread = (ovrAppThread *) malloc( sizeof( ovrAppThread ) );
 	ovrAppThread_Create( appThread, env, activity, activityClass );
@@ -1250,6 +1410,7 @@ JNIEXPORT jlong JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onCreate( JNIEnv
 	ovrMessageQueue_Enable( &appThread->MessageQueue, true );
 	ovrMessage message;
 	ovrMessage_Init( &message, MESSAGE_ON_CREATE, MQ_WAIT_PROCESSED );
+	ovrMessage_SetPointerParm( &message, 0, cmdLine );
 	ovrMessageQueue_PostMessage( &appThread->MessageQueue, &message );
 
 	return (jlong)((size_t)appThread);
@@ -1267,6 +1428,8 @@ JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_setCallbackObject
 
     android_initAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"initAudio","(I)V");
     android_writeAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"writeAudio","(Ljava/nio/ByteBuffer;II)V");
+    android_pauseAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"pauseAudio","()V");
+    android_resumeAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"resumeAudio","()V");
 }
 
 JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onStart( JNIEnv * env, jobject obj, jlong handle )
@@ -1462,27 +1625,4 @@ JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_requestAudioData(
 {
 	ALOGV("Calling: QGVR_GetAudio");
 	QGVR_GetAudio();
-}
-
-void jni_initAudio(void *buffer, int size)
-{
-	ALOGV("Calling: jni_initAudio");
-    JNIEnv *env;
-    jobject tmp;
-    (*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4);
-    tmp = (*env)->NewDirectByteBuffer(env, buffer, size);
-    audioBuffer = (jobject)(*env)->NewGlobalRef(env, tmp);
-    return (*env)->CallVoidMethod(env, qgvrCallbackObj, android_initAudio, size);
-}
-
-void jni_writeAudio(int offset, int length)
-{
-	ALOGV("Calling: jni_writeAudio");
-	if (audioBuffer==0) return;
-    JNIEnv *env;
-    if (((*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4))<0)
-    {
-    	(*jVM)->AttachCurrentThread(jVM,&env, NULL);
-    }
-    (*env)->CallVoidMethod(env, qgvrCallbackObj, android_writeAudio, audioBuffer, offset, length);
 }

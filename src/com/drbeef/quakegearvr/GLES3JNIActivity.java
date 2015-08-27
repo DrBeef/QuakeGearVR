@@ -354,8 +354,8 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 				return K_CTRL;
 			case KeyEvent.KEYCODE_ENTER:
 				return K_ENTER;		
-			case KeyEvent.KEYCODE_BACK:
-				return K_ESCAPE;
+//			case KeyEvent.KEYCODE_BACK:
+//				return K_ESCAPE;
 			case KeyEvent.KEYCODE_DEL:
 				return K_BACKSPACE;
 			case KeyEvent.KEYCODE_ALT_LEFT:
@@ -428,15 +428,17 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 			case KeyEvent.KEYCODE_BUTTON_SELECT:
 				return K_ENTER;
 			case KeyEvent.KEYCODE_MENU:
-				return K_ESCAPE;			
-			case KeyEvent.KEYCODE_BUTTON_L2:
-				return K_MWHEELDOWN;
-			case KeyEvent.KEYCODE_BUTTON_R2:
-				return K_MWHEELUP;
+				return K_ESCAPE;
+				
+			//Both shoulder buttons will "fire"
 			case KeyEvent.KEYCODE_BUTTON_R1:
-				return K_MOUSE1;//Sometimes it is necessary
+			case KeyEvent.KEYCODE_BUTTON_R2:
+				return K_MOUSE1;
+				
+			//enables "run"
 			case KeyEvent.KEYCODE_BUTTON_L1:
-				return K_SHIFT;//enables "run"
+			case KeyEvent.KEYCODE_BUTTON_L2:
+				return K_SHIFT;
 			case KeyEvent.KEYCODE_BUTTON_THUMBL:
 				return -1;
 		}	

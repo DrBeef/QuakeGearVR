@@ -56,6 +56,7 @@ public class QGVRAudioCallback {
 	{
 		if(mAudioTrack == null)
 			return;				
+		mAudioTrack.flush();
 		mAudioTrack.pause();	
 		reqThreadrunning=false;
 	}
@@ -70,7 +71,6 @@ public class QGVRAudioCallback {
 
 	public void terminateAudio()
 	{
-		mAudioTrack.pause();
 		mAudioTrack.flush();
 		mAudioTrack.release();
 

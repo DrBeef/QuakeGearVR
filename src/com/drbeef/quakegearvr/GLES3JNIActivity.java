@@ -237,46 +237,76 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
         return 0;
     }	
 	
+	int lTrigAction = KeyEvent.ACTION_UP;
+	int rTrigAction = KeyEvent.ACTION_UP;
+	
 	@Override
 	public boolean onGenericMotionEvent(MotionEvent event) {
 		int source = event.getSource();
 		int action = event.getAction();			
-		if (((source==InputDevice.SOURCE_JOYSTICK)||(event.getSource()==InputDevice.SOURCE_GAMEPAD))&&(event.getAction() == MotionEvent.ACTION_MOVE))
+		if ((source==InputDevice.SOURCE_JOYSTICK)||(event.getSource()==InputDevice.SOURCE_GAMEPAD))
 		{
-			float x = getCenteredAxis(event, MotionEvent.AXIS_X);
-			float y = -getCenteredAxis(event, MotionEvent.AXIS_Y);			
-			GLES3JNILib.onTouchEvent( mNativeHandle, source, action, x, y );
-			
-	        float z = getCenteredAxis(event, MotionEvent.AXIS_Z);
-	        float rz = 0.0f;//getCenteredAxis(event, MotionEvent.AXIS_RZ);	
-			//For the samsung game pad (uses different axes for the second stick)
-			float rx = getCenteredAxis(event, MotionEvent.AXIS_RX);
-			float ry = 0.0f;//getCenteredAxis(event, MotionEvent.AXIS_RY);	      	        
-	        	
-			//let's figure it out
-			if (gamepadType == 0)
+			if (event.getAction() == MotionEvent.ACTION_MOVE)
 			{
-		        if (z != 0.0f || rz != 0.0f)
-		        	gamepadType = 1;
-		        else if (rx != 0.0f || ry != 0.0f)
-		        	gamepadType = 2;
-			}
+				float x = getCenteredAxis(event, MotionEvent.AXIS_X);
+				float y = -getCenteredAxis(event, MotionEvent.AXIS_Y);			
+				GLES3JNILib.onTouchEvent( mNativeHandle, source, action, x, y );
+	
+		        float z = getCenteredAxis(event, MotionEvent.AXIS_Z);
+		        float rz = 0.0f;//getCenteredAxis(event, MotionEvent.AXIS_RZ);	
+				//For the samsung game pad (uses different axes for the second stick)
+				float rx = getCenteredAxis(event, MotionEvent.AXIS_RX);
+				float ry = 0.0f;//getCenteredAxis(event, MotionEvent.AXIS_RY);	      	        
+		        	
+				//let's figure it out
+				if (gamepadType == 0)
+				{
+			        if (z != 0.0f || rz != 0.0f)
+			        	gamepadType = 1;
+			        else if (rx != 0.0f || ry != 0.0f)
+			        	gamepadType = 2;
+				}
+	
+				switch (gamepadType)
+				{
+				case 0:
+					break;
+				case 1:
+		        	GLES3JNILib.onMotionEvent( mNativeHandle, source, action, z, rz );
+		        	break;
+				case 2:
+					GLES3JNILib.onMotionEvent( mNativeHandle, source, action, rx, ry );
+					break;
+				}
 
-			switch (gamepadType)
-			{
-			case 0:
-				break;
-			case 1:
-	        	GLES3JNILib.onMotionEvent( mNativeHandle, source, action, z, rz );
-	        	break;
-			case 2:
-				GLES3JNILib.onMotionEvent( mNativeHandle, source, action, rx, ry );
-				break;
+				//Fire weapon using shoulder trigger
+				float axisRTrigger = max(event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
+						event.getAxisValue(MotionEvent.AXIS_GAS));
+				int newRTrig = axisRTrigger > 0.6 ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
+				if (rTrigAction != newRTrig)
+				{
+					GLES3JNILib.onKeyEvent( mNativeHandle, K_MOUSE1, newRTrig, 0);
+					rTrigAction = newRTrig;
+				}
+				
+				//Run using L shoulder
+				float axisLTrigger = max(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), 
+						event.getAxisValue(MotionEvent.AXIS_BRAKE));
+				int newLTrig = axisLTrigger > 0.6 ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
+				if (lTrigAction != newLTrig)
+				{
+					GLES3JNILib.onKeyEvent( mNativeHandle, K_SHIFT, newLTrig, 0);
+					lTrigAction = newLTrig;
+				}
 			}
 		}
 	    return false;
 	}
 	
+	private float max(float axisValue, float axisValue2) {
+		return (axisValue > axisValue2) ? axisValue : axisValue2;
+	}
+
 	@Override public boolean dispatchTouchEvent( MotionEvent event )
 	{
 		if ( mNativeHandle != 0 )

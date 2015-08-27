@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mprogdefs.h"
 
-#define QGVR_VERSION  "0.1"
+#define QGVR_VERSION  "0.2"
 
 #define TYPE_DEMO 1
 #define TYPE_GAME 2
@@ -3345,7 +3345,8 @@ static int M_CreditsMessage(const char *line1, const char *line2,
 		const char *line5, const char *line6,
 		const char *line7, const char *line8,
 		const char *line9, const char *line10,
-		const char *line11, const char *line12)
+		const char *line11, const char *line12,
+		const char *line13)
 {
 	int line = 0;
 	m_credits_message[line++] = line1;
@@ -3360,6 +3361,7 @@ static int M_CreditsMessage(const char *line1, const char *line2,
 	m_credits_message[line++] = line10;
 	m_credits_message[line++] = line11;
 	m_credits_message[line++] = line12;
+	m_credits_message[line++] = line13;
 	m_credits_message[line++] = NULL;
 	return 1;
 }
@@ -3376,7 +3378,8 @@ static void M_Credits_Draw (void)
 			"                     - baggyg      ",
 			"  DarkPlaces Engine  - LordHavoc   ",
 			"  QI4A               - n0n3m4      ",
-			"  Icons              - WormSlayer  ",
+			"  App Icon           - WormSlayer  ",
+			"",
 			"",
 			"       ** Please Press Start **    ");
 
@@ -3395,9 +3398,9 @@ static void M_Credits_Draw (void)
 	}
 	lines = (lastline - firstline) + 1;
 	M_Background(linelength * 8 + 16, lines * 8 + 16);
-	M_DrawTextBox(0, -98, linelength, lines); //this is less obtrusive than hacking up the M_DrawTextBox function
+	M_DrawTextBox(0, -48, linelength, lines); //this is less obtrusive than hacking up the M_DrawTextBox function
 	for (i = 0, l = firstline;i < lines;i++, l++)
-		M_Print(8 + 4 * (linelength - strlen(m_credits_message[l])), -90 + 8 * i, m_credits_message[l]);
+		M_Print(8 + 4 * (linelength - strlen(m_credits_message[l])), -40 + 8 * i, m_credits_message[l]);
 }
 
 

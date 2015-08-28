@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -67,7 +68,14 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		WindowManager.LayoutParams params = getWindow().getAttributes();
 		params.screenBrightness = 1.0f;
 		getWindow().setAttributes( params );
-
+		
+		//Ensure some of the config items are set as we wish
+		try {
+			patchConfig("/sdcard/QGVR");
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 	
 		//Read these from a file and pass through 
 		String commandLineParams = new String("quake");
@@ -104,6 +112,26 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 
 		mNativeHandle = GLES3JNILib.onCreate( this, commandLineParams );
 	}
+	
+	public void patchConfig(String dir) throws Exception
+	{
+		if (new File(dir+"/id1/config.cfg").exists())
+		{
+			BufferedReader br=new BufferedReader(new FileReader(dir+"/id1/config.cfg"));
+			String s;
+			StringBuilder sb=new StringBuilder(0);
+			while ((s=br.readLine())!=null)
+			{
+				if (!(s.contains("cl_forwardspeed")))
+						sb.append(s+"\n");
+			}
+			br.close();
+			sb.append("\"cl_forwardspeed\" \"200\"\n");
+			FileWriter fw=new FileWriter(dir+"/id1/config.cfg");
+			fw.write(sb.toString());fw.flush();fw.close();
+		}
+	}
+	
 
 	@Override protected void onStart()
 	{

@@ -79,6 +79,7 @@ jmethodID android_initAudio;
 jmethodID android_writeAudio;
 jmethodID android_pauseAudio;
 jmethodID android_resumeAudio;
+jmethodID android_terminateAudio;
 
 void jni_initAudio(void *buffer, int size)
 {
@@ -125,6 +126,18 @@ void jni_resumeAudio()
     	(*jVM)->AttachCurrentThread(jVM,&env, NULL);
     }
     (*env)->CallVoidMethod(env, qgvrCallbackObj, android_resumeAudio);
+}
+
+void jni_terminateAudio()
+{
+	ALOGV("Calling: jni_terminateAudio");
+	if (audioBuffer==0) return;
+    JNIEnv *env;
+    if (((*jVM)->GetEnv(jVM, (void**) &env, JNI_VERSION_1_4))<0)
+    {
+    	(*jVM)->AttachCurrentThread(jVM,&env, NULL);
+    }
+    (*env)->CallVoidMethod(env, qgvrCallbackObj, android_terminateAudio);
 }
 
 //Timing stuff for joypad control
@@ -1282,11 +1295,36 @@ void * AppThreadFunction( void * parm )
 					MR_ToggleMenu(2);
 					break;
 				}
-				case MESSAGE_ON_START:				{ break; }
-				case MESSAGE_ON_RESUME:				{ appState.Resumed = true; break; }
-				case MESSAGE_ON_PAUSE:				{ appState.Resumed = false; break; }
-				case MESSAGE_ON_STOP:				{ break; }
-				case MESSAGE_ON_DESTROY:			{ appState.NativeWindow = NULL; destroyed = true; break; }
+				case MESSAGE_ON_START:
+				{
+					returnvalue = -1;
+					break;
+				}
+				case MESSAGE_ON_RESUME:
+				{
+					//If we get here, then user has opted not to quit
+					jni_resumeAudio();
+					appState.Resumed = true;
+					break;
+				}
+				case MESSAGE_ON_PAUSE:
+				{
+					jni_pauseAudio();
+					appState.Resumed = false;
+					break;
+				}
+				case MESSAGE_ON_STOP:
+				{
+					break;
+				}
+				case MESSAGE_ON_DESTROY:
+				{
+					Host_Shutdown();
+					jni_terminateAudio();
+					appState.NativeWindow = NULL;
+					destroyed = true;
+					break;
+				}
 				case MESSAGE_ON_SURFACE_CREATED:	{ appState.NativeWindow = (ANativeWindow *)ovrMessage_GetPointerParm( &message, 0 ); break; }
 				case MESSAGE_ON_SURFACE_DESTROYED:	{ appState.NativeWindow = NULL; break; }
 				case MESSAGE_ON_KEY_EVENT:			{ ovrApp_HandleKeyEvent( &appState,
@@ -1338,15 +1376,11 @@ void * AppThreadFunction( void * parm )
 		// Hand over the eye images to the time warp.
 		vrapi_SubmitFrame( appState.Ovr, &parms );
 
+		//User is thinking about quitting
 		if (returnvalue != -1)
 		{
-			Host_SaveConfig();
 			jni_pauseAudio();
 			ovr_StartSystemActivity( &appState.Java, PUI_CONFIRM_QUIT, NULL );
-
-			//If we get here, then user has opted not to quite
-			jni_resumeAudio();
-			returnvalue = -1;
 		}
 	}
 
@@ -1430,6 +1464,7 @@ JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_setCallbackObject
     android_writeAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"writeAudio","(Ljava/nio/ByteBuffer;II)V");
     android_pauseAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"pauseAudio","()V");
     android_resumeAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"resumeAudio","()V");
+    android_terminateAudio = (*env)->GetMethodID(env,qgvrCallbackClass,"terminateAudio","()V");
 }
 
 JNIEXPORT void JNICALL Java_com_drbeef_quakegearvr_GLES3JNILib_onStart( JNIEnv * env, jobject obj, jlong handle )

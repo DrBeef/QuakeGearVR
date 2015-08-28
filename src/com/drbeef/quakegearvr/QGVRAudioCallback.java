@@ -23,8 +23,12 @@ public class QGVRAudioCallback {
 		int sampleFreq = 44100;							
 	
 		int bufferSize = Math.max(size,AudioTrack.getMinBufferSize(sampleFreq, AudioFormat.CHANNEL_CONFIGURATION_STEREO, AudioFormat.ENCODING_PCM_16BIT));		
-		mAudioTrack = new QuakeGearVRAudioTrack(AudioManager.STREAM_MUSIC,sampleFreq,AudioFormat.CHANNEL_CONFIGURATION_STEREO,
-		AudioFormat.ENCODING_PCM_16BIT,bufferSize,AudioTrack.MODE_STREAM);
+		mAudioTrack = new QuakeGearVRAudioTrack(AudioManager.STREAM_MUSIC,
+				sampleFreq,
+				AudioFormat.CHANNEL_CONFIGURATION_STEREO,
+				AudioFormat.ENCODING_PCM_16BIT,
+				bufferSize,
+				AudioTrack.MODE_STREAM);
 		mAudioTrack.play();
 		long sleeptime=(size*1000000000l)/(2*2*sampleFreq);
 		stpe=new ScheduledThreadPoolExecutor(5);
@@ -45,6 +49,8 @@ public class QGVRAudioCallback {
 	{
 		if(mAudioTrack == null)
 			return;			
+		if (!reqThreadrunning)
+			return;
 		audioData.position(offset);
 		audioData.get(mAudioData, 0, len);
 		if (sync++%128==0)
@@ -56,8 +62,9 @@ public class QGVRAudioCallback {
 	{
 		if(mAudioTrack == null)
 			return;				
-		mAudioTrack.flush();
+		
 		mAudioTrack.pause();	
+		mAudioTrack.flush();
 		reqThreadrunning=false;
 	}
 	
@@ -65,10 +72,11 @@ public class QGVRAudioCallback {
 	{
 		if(mAudioTrack == null)
 			return;				
+
 		mAudioTrack.play();	
 		reqThreadrunning=true;
 	}
-
+	
 	public void terminateAudio()
 	{
 		mAudioTrack.flush();

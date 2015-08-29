@@ -3378,7 +3378,6 @@ static void M_Credits_Draw (void)
 {
 	M_CreditsMessage(
 			"   -=  QUAKE for GearVR "QGVR_VERSION" =-   ",
-			"       ----------------------",
 			"",
 			"  Developer - Simon Brown (@DrBeef)",
 			"",
@@ -3388,6 +3387,7 @@ static void M_Credits_Draw (void)
 			"  Icon Design        - WormSlayer  ",
 			"  DarkPlaces Engine  - LordHavoc   ",
 			"  QI4A               - n0n3m4      ",
+			"",
 			"",
 			"        ** Please Any Button **    ");
 

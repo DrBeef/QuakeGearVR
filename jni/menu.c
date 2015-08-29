@@ -198,8 +198,10 @@ static void M_Background(int width, int height)
 	menu_height = bound(1.0f, (float)height, vid_conheight.value);
 	menu_x = (vid_conwidth.integer - menu_width) * 0.5 + Menu_GetXOffset();
 	menu_y = (vid_conheight.integer - menu_height) * 0.5 + Menu_GetYOffset();
-	//DrawQ_Fill(menu_x, menu_y, menu_width, menu_height, 0, 0, 0, 0.5, 0);
-	DrawQ_Fill(0, 0, vid_conwidth.integer, vid_conheight.integer, 0, 0, 0, 0.6, 0);
+
+	//Make the background barely visible when menu active.. this should avoid people
+	//throwing up while the demo is running!
+	DrawQ_Fill(0, 0, vid_conwidth.integer, vid_conheight.integer, 0, 0, 0, 0.75, 0);
 }
 
 /*

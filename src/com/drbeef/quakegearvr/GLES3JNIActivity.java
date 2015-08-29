@@ -5,15 +5,19 @@ package com.drbeef.quakegearvr;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.res.AssetManager;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -29,7 +33,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 
-public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
+@SuppressLint("SdCardPath") public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 {
 	// Load the gles3jni library right away to make sure JNI_OnLoad() gets called as the very first thing.
 	static
@@ -50,7 +54,7 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 	
 	public static QGVRAudioCallback mAudio;
 
-	@SuppressLint("SdCardPath") @Override protected void onCreate( Bundle icicle )
+	@Override protected void onCreate( Bundle icicle )
 	{
 		Log.v( TAG, "----------------------------------------------------------------" );
 		Log.v( TAG, "GLES3JNIActivity::onCreate()" );
@@ -68,6 +72,10 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		WindowManager.LayoutParams params = getWindow().getAttributes();
 		params.screenBrightness = 1.0f;
 		getWindow().setAttributes( params );
+		
+		//This will copy the shareware version of quake if user doesn't have anything installed
+		copy_asset("pak0.pak");
+		copy_asset("config.cfg");
 		
 		//Ensure some of the config items are set as we wish
 		try {
@@ -113,6 +121,46 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 		mNativeHandle = GLES3JNILib.onCreate( this, commandLineParams );
 	}
 	
+	public void copy_asset(String name) {
+		if (!(new File("/sdcard/QGVR/id1/" + name)).exists()) {
+			
+			//Ensure we have an appropriate folder
+			new File("/sdcard/QGVR/id1").mkdirs();
+			copy_asset(name, "/sdcard/QGVR/id1/" + name);
+		}
+	}
+
+	public void copy_asset(String name_in, String name_out) {
+		AssetManager assets = this.getAssets();
+
+		try {
+			InputStream in = assets.open(name_in);
+			OutputStream out = new FileOutputStream(name_out);
+
+			copy_stream(in, out);
+
+			out.close();
+			in.close();
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
+
+	}
+
+	public static void copy_stream(InputStream in, OutputStream out)
+			throws IOException {
+		byte[] buf = new byte[1024];
+		while (true) {
+			int count = in.read(buf);
+			if (count <= 0)
+				break;
+			out.write(buf, 0, count);
+		}
+	}
+	
+	
 	public void patchConfig(String dir) throws Exception
 	{
 		if (new File(dir+"/id1/config.cfg").exists())
@@ -127,8 +175,6 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 						sb.append(s+"\n");
 			}
 			br.close();
-			sb.append("\"cl_forwardspeed\" \"200\"\n");
-			sb.append("\"cl_backspeed\" \"200\"\n");
 			FileWriter fw=new FileWriter(dir+"/id1/config.cfg");
 			fw.write(sb.toString());fw.flush();fw.close();
 		}

@@ -1425,6 +1425,7 @@ void Host_Shutdown(void)
 	// AK shutdown PRVM
 	// AK hmm, no PRVM_Shutdown(); yet
 
+	//Don't need to do this, we don't own the video side of things
 	//CL_Video_Shutdown();
 
 	Host_SaveConfig();

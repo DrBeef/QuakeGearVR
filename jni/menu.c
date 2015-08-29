@@ -2898,8 +2898,11 @@ static void M_Menu_YawControl_Key (int key, int ascii)
 			M_Menu_YawControl_AdjustSliders(-1);
 		else
 		{
-			if (--cl_yawmode.integer < 0)
-				cl_yawmode.integer = 2;
+			int newYawMode = cl_yawmode.integer;
+			if (--newYawMode < 0)
+				newYawMode = 2;
+
+			Cvar_SetValueQuick (&cl_yawmode, newYawMode);
 		}
 		break;
 
@@ -2909,8 +2912,11 @@ static void M_Menu_YawControl_Key (int key, int ascii)
 			M_Menu_YawControl_AdjustSliders(1);
 		else
 		{
-			if (++cl_yawmode.integer > 2)
-				cl_yawmode.integer = 0;
+			int newYawMode = cl_yawmode.integer;
+			if (++newYawMode > 2)
+				newYawMode = 0;
+
+			Cvar_SetValueQuick (&cl_yawmode, newYawMode);
 		}
 		break;
 
@@ -2936,11 +2942,11 @@ static void M_Menu_YawControl_Draw (void)
 	opty = 32 - bound(0, optcursor - (visible >> 1), max(0, YAWCONTROL_ITEMS - visible)) * 8;
 
 	if (cl_yawmode.integer == 0)
-		M_Options_PrintCommand("         Mode: \"Swivel-Chair\"", true);
+		M_Options_PrintCommand("  Mode: Swivel-Chair/Standing", true);
 	else if (cl_yawmode.integer == 1)
-		M_Options_PrintCommand("         Mode: \"Comfort-Mode\"", true);
+		M_Options_PrintCommand("  Mode: Comfort-Mode", true);
 	else
-		M_Options_PrintCommand("         Mode: Stick-Yaw", true);
+		M_Options_PrintCommand("  Mode: Stick-Yaw", true);
 
 	M_Options_PrintSlider(  "Comfort Mode Turn Angle", cl_yawmode.integer == 1, cl_comfort.value, 30, 180);
 	M_Options_PrintSlider(  "   Stick Yaw Turn Speed", cl_yawmode.integer == 2, sensitivity.value, 1, 10);

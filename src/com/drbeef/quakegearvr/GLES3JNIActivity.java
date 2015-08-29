@@ -122,11 +122,13 @@ public class GLES3JNIActivity extends Activity implements SurfaceHolder.Callback
 			StringBuilder sb=new StringBuilder(0);
 			while ((s=br.readLine())!=null)
 			{
-				if (!(s.contains("cl_forwardspeed")))
+				if (!s.contains("cl_forwardspeed") &&
+					!s.contains("cl_backspeed"))
 						sb.append(s+"\n");
 			}
 			br.close();
 			sb.append("\"cl_forwardspeed\" \"200\"\n");
+			sb.append("\"cl_backspeed\" \"200\"\n");
 			FileWriter fw=new FileWriter(dir+"/id1/config.cfg");
 			fw.write(sb.toString());fw.flush();fw.close();
 		}

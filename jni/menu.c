@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mprogdefs.h"
 
-#define QGVR_VERSION  "0.2"
+#define QGVR_VERSION  "1.0.0"
 
 #define TYPE_DEMO 1
 #define TYPE_GAME 2
@@ -3377,19 +3377,19 @@ static int M_CreditsMessage(const char *line1, const char *line2,
 static void M_Credits_Draw (void)
 {
 	M_CreditsMessage(
-			"    -=  QUAKE for GearVR "QGVR_VERSION" =-    ",
+			"   -=  QUAKE for GearVR "QGVR_VERSION" =-   ",
+			"       ----------------------",
 			"",
 			"  Developer - Simon Brown (@DrBeef)",
 			"",
 			"  With special thanks to..         ",
 			"  Testers            - mallmagician",
 			"                     - baggyg      ",
+			"  Icon Design        - WormSlayer  ",
 			"  DarkPlaces Engine  - LordHavoc   ",
 			"  QI4A               - n0n3m4      ",
-			"  App Icon           - WormSlayer  ",
 			"",
-			"",
-			"       ** Please Press Start **    ");
+			"        ** Please Any Button **    ");
 
 	int i, l, linelength, firstline, lastline, lines;
 	for (i = 0, linelength = 0, firstline = 9999, lastline = -1;m_credits_message[i];i++)

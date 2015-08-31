@@ -3389,7 +3389,7 @@ static void M_Credits_Draw (void)
 			"  QI4A               - n0n3m4      ",
 			"",
 			"",
-			"        ** Please Any Button **    ");
+			"    ** Please Press Any Button **  ");
 
 	int i, l, linelength, firstline, lastline, lines;
 	for (i = 0, linelength = 0, firstline = 9999, lastline = -1;m_credits_message[i];i++)

@@ -122,7 +122,10 @@ import android.view.MotionEvent;
 	}
 	
 	public void copy_asset(String name) {
-		if (!(new File("/sdcard/QGVR/id1/" + name)).exists()) {
+		File f = new File("/sdcard/QGVR/id1/" + name); 
+		if (!f.exists() ||
+			//If file was somehow corrupted, copy the back-up
+			f.length() < 500) {
 			
 			//Ensure we have an appropriate folder
 			new File("/sdcard/QGVR/id1").mkdirs();
@@ -168,15 +171,24 @@ import android.view.MotionEvent;
 			BufferedReader br=new BufferedReader(new FileReader(dir+"/id1/config.cfg"));
 			String s;
 			StringBuilder sb=new StringBuilder(0);
+			boolean needsPatching = false;
 			while ((s=br.readLine())!=null)
 			{
 				if (!s.contains("cl_forwardspeed") &&
 					!s.contains("cl_backspeed"))
-						sb.append(s+"\n");
+				{
+					sb.append(s+"\n");
+				}
+				else
+					needsPatching = true;
 			}
 			br.close();
-			FileWriter fw=new FileWriter(dir+"/id1/config.cfg");
-			fw.write(sb.toString());fw.flush();fw.close();
+			
+			if (needsPatching)
+			{
+				FileWriter fw=new FileWriter(dir+"/id1/config.cfg");
+				fw.write(sb.toString());fw.flush();fw.close();
+			}
 		}
 	}
 	

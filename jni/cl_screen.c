@@ -28,7 +28,7 @@ cvar_t scr_conscroll2_y = {CVAR_SAVE, "scr_conscroll2_y", "0", "scroll speed of 
 cvar_t scr_conscroll3_x = {CVAR_SAVE, "scr_conscroll3_x", "0", "scroll speed of gfx/conback3 in x direction"};
 cvar_t scr_conscroll3_y = {CVAR_SAVE, "scr_conscroll3_y", "0", "scroll speed of gfx/conback3 in y direction"};
 cvar_t scr_menuforcewhiledisconnected = {0, "scr_menuforcewhiledisconnected", "0", "forces menu while disconnected"};
-cvar_t scr_centertime = {0, "scr_centertime","2", "how long centerprint messages show"};
+cvar_t scr_centertime = {0, "scr_centertime","3", "how long centerprint messages show"};
 cvar_t scr_showram = {CVAR_SAVE, "showram","1", "show ram icon if low on surface cache memory (not used)"};
 cvar_t scr_showturtle = {CVAR_SAVE, "showturtle","0", "show turtle icon when framerate is too low"};
 cvar_t scr_showpause = {CVAR_SAVE, "showpause","1", "show pause icon when game is paused"};
@@ -186,10 +186,8 @@ static void SCR_DrawCenterString (void)
 	if (remaining < 1)
 		return;
 
-	if (scr_center_lines <= 4)
-		y = (int)(vid_conheight.integer*0.35);
-	else
-		y = 48;
+	//Lowered to be visible in the GVR
+	y = (int)(vid_conheight.integer*0.5);
 
 	color = -1;
 	do
@@ -199,7 +197,7 @@ static void SCR_DrawCenterString (void)
 		int l = newline ? (newline - start) : (int)strlen(start);
 		float width = DrawQ_TextWidth(start, l, 8, 8, false, FONT_CENTERPRINT);
 
-		x = (int) (vid_conwidth.integer - width)/2;
+		x = (int) (vid_conwidth.integer - width)/2 + (r_stereo_side == 0 ? 10 : -10);
 		if (l > 0)
 		{
 			if (remaining < l)

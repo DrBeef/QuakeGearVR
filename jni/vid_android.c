@@ -135,7 +135,7 @@ void VID_SetMouse (qboolean fullscreengrab, qboolean relative, qboolean hidecurs
 bool scndswp=0;
 void VID_Finish (void)
 {
-if (scndswp) eglSwapBuffers(eglGetCurrentDisplay(), eglGetCurrentSurface(EGL_DRAW));
+//if (scndswp) eglSwapBuffers(eglGetCurrentDisplay(), eglGetCurrentSurface(EGL_DRAW));
 scndswp=1;
 }
 

@@ -453,9 +453,9 @@ void QGVR_BeginFrame()
 	scndswp=0;
 	if (r_glsl_permutation!=0)
 	{
-	glUseProgram(r_glsl_permutation->program);
-	R_Mesh_TexBind(r_glsl_permutation->tex_Texture_First,0);
-	android_kostyl();//from Ð¯USSIAÐ˜ "ÐšÐ¾Ñ�Ñ‚Ñ‹Ð»ÑŒ" - "A dirty hack"
+//	glUseProgram(r_glsl_permutation->program);
+//	R_Mesh_TexBind(r_glsl_permutation->tex_Texture_First,0);
+//	android_kostyl();//from Ð¯USSIAÐ˜ "ÐšÐ¾Ñ�Ñ‚Ñ‹Ð»ÑŒ" - "A dirty hack"
 	}
 	Host_BeginFrame();
 }
@@ -488,10 +488,30 @@ void QGVR_Analog(int enable,float x,float y)
 void QGVR_MotionEvent(float delta, float dx, float dy)
 {
 	static bool canAdjust = true;
-	if (cl_yawmode.integer == 1)
+
+	//Pitch lock?
+	if (cl_pitchmode.integer != 0) {
+
+		float dir = 1.0f;
+		if (cl_pitchmode.integer == 1)
+			dir = -1.0f;
+
+		in_mouse_y += (dy * delta * dir);
+		in_windowmouse_y += (dy * delta * dir);
+		if (in_windowmouse_y < 0) in_windowmouse_y = 0;
+		if (in_windowmouse_y > andrh - 1) in_windowmouse_y = andrh - 1;
+	}
+
+	//If not in vr mode, then always use yaw stick control
+	if (cl_yawmode.integer == 2)
 	{
-		if (fabs(dx) > 0.4 && canAdjust && delta != -1.0f)
-		{
+		in_mouse_x+=(dx*delta);
+		in_windowmouse_x += (dx*delta);
+		if (in_windowmouse_x<0) in_windowmouse_x=0;
+		if (in_windowmouse_x>andrw-1) in_windowmouse_x=andrw-1;
+	}
+	else if (cl_yawmode.integer == 1) {
+		if (fabs(dx) > 0.4 && canAdjust && delta != -1.0f) {
 			if (dx > 0.0)
 				cl.comfortInc--;
 			else
@@ -502,7 +522,7 @@ void QGVR_MotionEvent(float delta, float dx, float dy)
 			if (cl.comfortInc >= max)
 				cl.comfortInc = 0;
 			if (cl.comfortInc < 0)
-				cl.comfortInc = max-1;
+				cl.comfortInc = max - 1;
 
 			canAdjust = false;
 		}
@@ -510,27 +530,23 @@ void QGVR_MotionEvent(float delta, float dx, float dy)
 		if (fabs(dx) < 0.3)
 			canAdjust = true;
 	}
-	else if (cl_yawmode.integer == 2)
-	{
-		in_mouse_x+=(dx*delta);
-		in_mouse_y+=(dy*delta);
-		in_windowmouse_x += (dx*delta);
-		if (in_windowmouse_x<0) in_windowmouse_x=0;
-		if (in_windowmouse_x>andrw-1) in_windowmouse_x=andrw-1;
-		in_windowmouse_y += (dy*delta);
-		if (in_windowmouse_y<0) in_windowmouse_y=0;
-		if (in_windowmouse_y>andrh-1) in_windowmouse_y=andrh-1;
-	}
 }
 
 static struct {
-	float pitch, yaw, previous_yaw, roll;
+	float pitch, previous_pitch, yaw, previous_yaw, roll;
 } move_event;
 
 
 void IN_Move(void)
 {
-	cl.viewangles[PITCH] = move_event.pitch;
+	if (cl_pitchmode.integer != 0) {
+		cl.viewangles[PITCH] -= move_event.previous_pitch;
+		cl.viewangles[PITCH] += move_event.pitch;
+	}
+	else {
+		cl.viewangles[PITCH] = move_event.pitch;
+	}
+
 	if (cl_yawmode.integer != 1)
 		cl.viewangles[YAW] -= move_event.previous_yaw;
 	cl.viewangles[YAW] += move_event.yaw ;
@@ -540,8 +556,9 @@ void IN_Move(void)
 void QGVR_MoveEvent(float yaw, float pitch, float roll)
 {
 	move_event.previous_yaw = move_event.yaw;
-	move_event.yaw = yaw;
-	move_event.pitch = pitch;
+	move_event.previous_pitch = move_event.pitch;
+	move_event.yaw = yaw * cl_yawmult.value;
+	move_event.pitch = pitch * cl_pitchmult.value;
 	move_event.roll = roll;
 }
 

@@ -35,29 +35,21 @@ static cvar_t menu_progs = { 0, "menu_progs", "menu.dat", "name of quakec menu.d
 
 static int NehGameType;
 
+//Game always starts showing the menu on the big screen in stereo
+extern int bigScreen;
+extern int stereoMode;
+
 enum m_state_e m_state = m_main;
 char m_return_reason[128];
 
 extern vec3_t hmdorientation;
 
-//Calculate the y-offset of the status bar dependent on where the user is looking
-int Menu_GetYOffset()
-{
-	return ((vid_conheight.value * 0.5) * ((hmdorientation[PITCH]) / -90.0f)) + 80;
-}
+
+//extern void setEyeBufferResolution(int resolution);
+extern void BigScreenMode(int mode);
 
 //Record yaw at the moment the menu is invoked
 static float hmdYaw = 0;
-int Menu_GetXOffset()
-{
-	//This will give the Menu depth in the 3D space
-	int yaw = ((hmdorientation[YAW] - hmdYaw) * 3);
-	//rudimentary clamp
-	yaw = (yaw > 110) ? 110 : yaw;
-	yaw = (yaw < -110) ? -110 : yaw;
-	return (r_stereo_side ? -25 : 25) + yaw;
-}
-
 
 void M_Menu_Main_f (void);
 	void M_Menu_SinglePlayer_f (void);
@@ -74,7 +66,7 @@ void M_Menu_Main_f (void);
 		void M_Menu_Keys_f (void);
 		void M_Menu_Reset_f (void);
 		void M_Menu_Video_f (void);
-		void M_Menu_YawControl_f (void);
+		void M_Menu_YawPitchControl_f (void);
 	void M_Menu_Help_f (void);
 	void M_Menu_Credits_f (void);
 	void M_Menu_Quit_f (void);
@@ -98,7 +90,7 @@ static void M_Main_Draw (void);
 		static void M_Keys_Draw (void);
 		static void M_Reset_Draw (void);
 		static void M_Video_Draw (void);
-		static void M_Menu_YawControl_Draw (void);
+		static void M_Menu_YawPitchControl_Draw (void);
 	static void M_Help_Draw (void);
 	static void M_Credits_Draw (void);
 	static void M_Quit_Draw (void);
@@ -123,7 +115,7 @@ static void M_Main_Key (int key, int ascii);
 		static void M_Keys_Key (int key, int ascii);
 		static void M_Reset_Key (int key, int ascii);
 		static void M_Video_Key (int key, int ascii);
-		static void M_Menu_YawControl_Key (int key, int ascii);
+		static void M_Menu_YawPitchControl_Key (int key, int ascii);
 	static void M_Help_Key (int key, int ascii);
 	static void M_Credits_Key (int key, int ascii);
 	static void M_Quit_Key (int key, int ascii);
@@ -196,8 +188,8 @@ static void M_Background(int width, int height)
 {
 	menu_width = bound(1.0f, (float)width, vid_conwidth.value);
 	menu_height = bound(1.0f, (float)height, vid_conheight.value);
-	menu_x = (vid_conwidth.integer - menu_width) * 0.5 + Menu_GetXOffset();
-	menu_y = (vid_conheight.integer - menu_height) * 0.5 + Menu_GetYOffset();
+	menu_x = (vid_conwidth.integer - menu_width) * 0.5;
+	menu_y = (vid_conheight.integer - menu_height) * 0.5;
 
 	//Make the background barely visible when menu active.. this should avoid people
 	//throwing up while the demo is running!
@@ -320,6 +312,8 @@ static void M_ToggleMenu(int mode)
 		else
 			//These are only shown at the start of the game
 			M_Menu_Credits_f();
+
+		BigScreenMode(1);
 	}
 	else
 	{
@@ -327,6 +321,7 @@ static void M_ToggleMenu(int mode)
 			return; // the menu is on, and we want it on
 		key_dest = key_game;
 		m_state = m_none;
+		BigScreenMode(0);
 	}
 }
 
@@ -465,6 +460,7 @@ void M_Menu_Main_f (void)
 	key_dest = key_menu;
 	m_state = m_main;
 	m_entersound = true;
+	BigScreenMode(1);
 }
 
 
@@ -480,14 +476,16 @@ static void M_Main_Draw (void)
 		const char *s;
 		M_Background(640, 480); //fall back is always to 640x480, this makes it most readable at that.
 		y = 480/3-16;
-		s = "You have reached this menu due to missing or unlocatable content/data";M_PrintRed ((640-strlen(s)*8)*0.5, (480/3)-16, s);y+=8;
+		s = "You have reached this menu due to missing or unlocatable content/data";
+		M_PrintRed ((640-strlen(s)*8)*0.5, (480/3)-16, s);y+=8;
 		y+=8;
-		s = "You may consider adding";M_Print ((640-strlen(s)*8)*0.5, y, s);y+=8;
-		s = "-basedir /path/to/game";M_Print ((640-strlen(s)*8)*0.5, y, s);y+=8;
-		s = "to your launch commandline";M_Print ((640-strlen(s)*8)*0.5, y, s);y+=8;
-		M_Print (640/2 - 48, 480/2, "Open Console"); //The console usually better shows errors (failures)
-		M_Print (640/2 - 48, 480/2 + 8, "Quit");
-		M_DrawCharacter(640/2 - 56, 480/2 + (8 * m_main_cursor), 12+((int)(realtime*4)&1));
+		s = "Please copy the PAK files from the fullgame or";M_Print (100, y, s);y+=8;
+		s = "shareware version (which you can download for free from";M_Print (100, y, s);y+=8;
+		s = "the following location: http://bit.ly/1PTsnsb )";M_Print (100, y, s);y+=8;
+		s = "to the following folder on your device:";M_Print (100, y, s);y+=16;
+		s = "/sdcard/Q4GVR/id1";M_Print (100, y, s);y+=8;
+		M_Print (640/2 - 48, 480/2 + 8, "Tap Screen to Quit");
+		M_DrawCharacter(640/2 - 86, 480/2 + 8, 12+((int)(realtime*4)&1));
 		return;
 	}
 
@@ -543,6 +541,7 @@ static void M_Main_Key (int key, int ascii)
 	case K_ESCAPE:
 		key_dest = key_game;
 		m_state = m_none;
+		BigScreenMode(0);
 		//cls.demonum = m_save_demonum;
 		//if (cls.demonum != -1 && !cls.demoplayback && cls.state != ca_connected)
 		//	CL_NextDemo ();
@@ -1008,6 +1007,7 @@ static void M_Load_Key (int k, int ascii)
 			return;
 		m_state = m_none;
 		key_dest = key_game;
+		BigScreenMode(0);
 
 		// issue the load command
 		Cbuf_AddText (va(vabuf, sizeof(vabuf), "load s%i\n", load_cursor) );
@@ -1049,6 +1049,7 @@ static void M_Save_Key (int k, int ascii)
 	case K_ENTER:
 		m_state = m_none;
 		key_dest = key_game;
+		BigScreenMode(0);
 		Cbuf_AddText (va(vabuf, sizeof(vabuf), "save s%i\n", load_cursor));
 		return;
 
@@ -1637,9 +1638,33 @@ static void M_Menu_Options_AdjustSliders (int dir)
 	S_LocalSound ("sound/misc/menu3.wav");
 
 	optnum = 0;
-	     if (options_cursor == optnum++) ;
+	if (options_cursor == optnum++) {
+		bigScreen = (bigScreen == 2 ? 1 : 2);
+	}
+	else if (options_cursor == optnum++) {
+		stereoMode = 1 - stereoMode;
+	}
 	else if (options_cursor == optnum++) ;
 	else if (options_cursor == optnum++) ;
+	else if (options_cursor == optnum++) ;
+	else if (options_cursor == optnum++)
+		 {/*
+			 if (vrMode) {
+				 if (dir == 1) {
+					 andrw *= 2;
+					 if (andrw > 2048)
+						 andrw = 256;
+				 }
+				 else {
+					 andrw /= 2;
+					 if (andrw < 256)
+						 andrw = 2048;
+				 }
+
+				 //Push back up to Java
+				 jni_setEyeBufferResolution(andrw);
+			 }*/
+		 }
 	else if (options_cursor == optnum++) ;
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&crosshair, bound(0, crosshair.integer + dir, 7));
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&scr_fov, bound(1, scr_fov.integer + dir * 1, 170));
@@ -1657,13 +1682,11 @@ static void M_Menu_Options_AdjustSliders (int dir)
 		}
 	}
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&showfps, !showfps.integer);
-	else if (options_cursor == optnum++) {f = !(showdate.integer && showtime.integer);Cvar_SetValueQuick(&showdate, f);Cvar_SetValueQuick(&showtime, f);}
 	else if (options_cursor == optnum++) ;
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&r_hdr_scenebrightness, bound(1, r_hdr_scenebrightness.value + dir * 0.0625, 4));
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&v_contrast, bound(1, v_contrast.value + dir * 0.0625, 4));
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&v_gamma, bound(0.5, v_gamma.value + dir * 0.0625, 3));
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&volume, bound(0, volume.value + dir * 0.0625, 1));
-	else if (options_cursor == optnum++) Cvar_SetValueQuick(&bgmvolume, bound(0, bgmvolume.value + dir * 0.0625, 1));
 }
 
 static int optnum;
@@ -1724,21 +1747,41 @@ static void M_Options_Draw (void)
 	visible = (int)((menu_height - 32) / 8);
 	opty = 32 - bound(0, optcursor - (visible >> 1), max(0, OPTIONS_ITEMS - visible)) * 8;
 
-	M_Options_PrintCommand( "    Customize controls", true);
-	M_Options_PrintCommand( "         Go to console", true);
+	if (bigScreen == 2)
+		M_Options_PrintCommand( "       Big Screen Mode: Enabled", true);
+	else
+		M_Options_PrintCommand( "       Big Screen Mode: Disabled", true);
+
+	switch (stereoMode)
+	{
+		case 0:
+			M_Options_PrintCommand( "     Stereo Mode: MONO", true);
+			break;
+		case 1:
+			M_Options_PrintCommand( "     Stereo Mode: STEREO", true);
+			break;
+		case 2:
+			M_Options_PrintCommand( "     Stereo Mode: WIGGLE (Non-VR/Big-Screen)", true);
+			break;
+	}
+
+	M_Options_PrintCommand( "   Controller Settings", true);
+	M_Options_PrintCommand( "    Open Quake Console", true);
 	M_Options_PrintCommand( "     Reset to defaults", true);
-	M_Options_PrintCommand( "      Yaw Control Mode", true);
+//	if (vrMode)
+		M_Options_PrintSlider(  " Eye Buffer Resolution", false, 1024, 256, 2048);
+//	else
+//		M_Options_PrintCommand( " Eye Buffer Resolution     n/a", false);
+	M_Options_PrintCommand( "   Key/Button Bindings", true);
 	M_Options_PrintSlider(  "             Crosshair", true, crosshair.value, 0, 7);
 	M_Options_PrintSlider(  "         Field of View", true, scr_fov.integer, 1, 170);
 	M_Options_PrintCheckbox("            Always Run", true, cl_forwardspeed.value > 200);
 	M_Options_PrintCheckbox("        Show Framerate", true, showfps.integer);
-	M_Options_PrintCheckbox("    Show Date and Time", true, showdate.integer && showtime.integer);
 	M_Options_PrintCommand( "     Custom Brightness", true);
 	M_Options_PrintSlider(  "       Game Brightness", true, r_hdr_scenebrightness.value, 1, 4);
 	M_Options_PrintSlider(  "            Brightness", true, v_contrast.value, 1, 2);
 	M_Options_PrintSlider(  "                 Gamma", true, v_gamma.value, 0.5, 3);
 	M_Options_PrintSlider(  "          Sound Volume", snd_initialized.integer, volume.value, 0, 1);
-	M_Options_PrintSlider(  "          Music Volume", cdaudioinitialized.integer, bgmvolume.value, 0, 1);
 	M_Options_PrintCommand( "     Customize Effects", true);
 	M_Options_PrintCommand( "       Effects:  Quake", true);
 	M_Options_PrintCommand( "       Effects: Normal", true);
@@ -1766,50 +1809,56 @@ static void M_Options_Key (int k, int ascii)
 		switch (options_cursor)
 		{
 		case 0:
-			M_Menu_Keys_f ();
+			bigScreen = (bigScreen == 2 ? 1 : 2);
 			break;
 		case 1:
+			stereoMode = 1 - stereoMode;
+			break;
+		case 2:
+			M_Menu_YawPitchControl_f ();
+			break;
+		case 3:
 			m_state = m_none;
 			key_dest = key_game;
 			Con_ToggleConsole_f ();
 			break;
-		case 2:
+		case 4:
 			M_Menu_Reset_f ();
 			break;
-		case 3:
-			M_Menu_YawControl_f ();
+		case 6:
+			M_Menu_Keys_f ();
 			break;
-		case 9:
+		case 11:
 			M_Menu_Options_ColorControl_f ();
 			break;
-		case 15: // Customize Effects
+		case 16: // Customize Effects
 			M_Menu_Options_Effects_f ();
 			break;
-		case 16: // Effects: Quake
+		case 17: // Effects: Quake
 			Cbuf_AddText("cl_particles 1;cl_particles_quake 1;cl_particles_quality 1;cl_particles_explosions_shell 0;r_explosionclip 1;cl_stainmaps 0;cl_stainmaps_clearonload 1;cl_decals 0;cl_particles_bulletimpacts 1;cl_particles_smoke 1;cl_particles_sparks 1;cl_particles_bubbles 1;cl_particles_blood 1;cl_particles_blood_alpha 1;cl_particles_blood_bloodhack 0;cl_beams_polygons 0;cl_beams_instantaimhack 0;cl_beams_quakepositionhack 1;cl_beams_lightatend 0;r_lerpmodels 1;r_lerpsprites 1;r_lerplightstyles 0;gl_polyblend 1;r_skyscroll1 1;r_skyscroll2 2;r_waterwarp 1;r_wateralpha 1;r_waterscroll 1\n");
 			break;
-		case 17: // Effects: Normal
+		case 18: // Effects: Normal
 			Cbuf_AddText("cl_particles 1;cl_particles_quake 0;cl_particles_quality 1;cl_particles_explosions_shell 0;r_explosionclip 1;cl_stainmaps 0;cl_stainmaps_clearonload 1;cl_decals 1;cl_particles_bulletimpacts 1;cl_particles_smoke 1;cl_particles_sparks 1;cl_particles_bubbles 1;cl_particles_blood 1;cl_particles_blood_alpha 1;cl_particles_blood_bloodhack 1;cl_beams_polygons 1;cl_beams_instantaimhack 0;cl_beams_quakepositionhack 1;cl_beams_lightatend 0;r_lerpmodels 1;r_lerpsprites 1;r_lerplightstyles 0;gl_polyblend 1;r_skyscroll1 1;r_skyscroll2 2;r_waterwarp 1;r_wateralpha 1;r_waterscroll 1\n");
 			break;
-		case 18: // Effects: High
+		case 19: // Effects: High
 			Cbuf_AddText("cl_particles 1;cl_particles_quake 0;cl_particles_quality 2;cl_particles_explosions_shell 0;r_explosionclip 1;cl_stainmaps 1;cl_stainmaps_clearonload 1;cl_decals 1;cl_particles_bulletimpacts 1;cl_particles_smoke 1;cl_particles_sparks 1;cl_particles_bubbles 1;cl_particles_blood 1;cl_particles_blood_alpha 1;cl_particles_blood_bloodhack 1;cl_beams_polygons 1;cl_beams_instantaimhack 0;cl_beams_quakepositionhack 1;cl_beams_lightatend 0;r_lerpmodels 1;r_lerpsprites 1;r_lerplightstyles 0;gl_polyblend 1;r_skyscroll1 1;r_skyscroll2 2;r_waterwarp 1;r_wateralpha 1;r_waterscroll 1\n");
 			break;
-		case 19:
+		case 20:
 			M_Menu_Options_Graphics_f ();
 			break;
-		case 20: // Lighting: Flares
+		case 21: // Lighting: Flares
 			Cbuf_AddText("r_coronas 1;gl_flashblend 1;r_shadow_gloss 0;r_shadow_realtime_dlight 0;r_shadow_realtime_dlight_shadows 0;r_shadow_realtime_world 0;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 0");
 			break;
-		case 21: // Lighting: Normal
+		case 22: // Lighting: Normal
 			Cbuf_AddText("r_coronas 1;gl_flashblend 0;r_shadow_gloss 1;r_shadow_realtime_dlight 1;r_shadow_realtime_dlight_shadows 0;r_shadow_realtime_world 0;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 0");
 			break;
-		case 22: // Lighting: High
+		case 23: // Lighting: High
 			Cbuf_AddText("r_coronas 1;gl_flashblend 0;r_shadow_gloss 1;r_shadow_realtime_dlight 1;r_shadow_realtime_dlight_shadows 1;r_shadow_realtime_world 0;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 1");
 			break;
-		case 23: // Lighting: Full
+		case 24: // Lighting: Full
 			Cbuf_AddText("r_coronas 1;gl_flashblend 0;r_shadow_gloss 1;r_shadow_realtime_dlight 1;r_shadow_realtime_dlight_shadows 1;r_shadow_realtime_world 1;r_shadow_realtime_world_lightmaps 0;r_shadow_realtime_world_shadows 1;r_bloom 1");
 			break;
-		case 24:
+		case 25:
 			M_Menu_ModList_f ();
 			break;
 		default:
@@ -2795,6 +2844,7 @@ static void M_Reset_Key (int key, int ascii)
 	{
 	case 'Y':
 	case 'y':
+		BigScreenMode(0);
 		Cbuf_AddText ("cvar_resettodefaults_all;exec default.cfg\n");
 		// no break here since we also exit the menu
 
@@ -2819,26 +2869,28 @@ static void M_Reset_Draw (void)
 	M_Print(8 + 4 * (linelength - 11), 16, "Press y / n");
 }
 
-#define	YAWCONTROL_ITEMS	3
+#define	YAWCONTROL_ITEMS	5
 
-static int yawcontrol_cursor;
+static int yawpitchcontrol_cursor;
 
-void M_Menu_YawControl_f (void)
+void M_Menu_YawPitchControl_f (void)
 {
 	key_dest = key_menu;
-	m_state = m_yawcontrol;
+	m_state = m_yawpitchcontrol;
 	m_entersound = true;
 }
 
-static void M_Menu_YawControl_AdjustSliders (int dir)
+static void M_Menu_YawPitchControl_AdjustSliders (int dir)
 {
 	int optnum;
 	S_LocalSound ("sound/misc/menu3.wav");
 
 	optnum = 0;
 
-	     if (yawcontrol_cursor == optnum++) ;
-	else if (yawcontrol_cursor == optnum++ && cl_yawmode.integer == 1)
+	     if (yawpitchcontrol_cursor == optnum++) ;
+	else if (yawpitchcontrol_cursor == optnum++) ;
+	else if (yawpitchcontrol_cursor == optnum++) ;
+	else if (yawpitchcontrol_cursor == optnum++ && cl_yawmode.integer == 1)
 		{
 			float value = 45.0f;
 			if (dir == 1)
@@ -2870,11 +2922,11 @@ static void M_Menu_YawControl_AdjustSliders (int dir)
 
 			Cvar_SetValueQuick (&cl_comfort, value);
 		}
-	else if (yawcontrol_cursor == optnum++  && cl_yawmode.integer == 2)
+	else if (yawpitchcontrol_cursor == optnum++  && cl_yawmode.integer == 2)
 		Cvar_SetValueQuick (&sensitivity, bound(1, (sensitivity.value + (dir * 0.25)), 10));
 }
 
-static void M_Menu_YawControl_Key (int key, int ascii)
+static void M_Menu_YawPitchControl_Key (int key, int ascii)
 {
 	switch (key)
 	{
@@ -2884,21 +2936,31 @@ static void M_Menu_YawControl_Key (int key, int ascii)
 
 	case K_DOWNARROW:
 		S_LocalSound ("sound/misc/menu1.wav");
-		if (++yawcontrol_cursor >= YAWCONTROL_ITEMS)
-			yawcontrol_cursor = 0;
+		if (++yawpitchcontrol_cursor >= YAWCONTROL_ITEMS)
+			yawpitchcontrol_cursor = 0;
 		break;
 
 	case K_UPARROW:
 		S_LocalSound ("sound/misc/menu1.wav");
-		if (--yawcontrol_cursor < 0)
-			yawcontrol_cursor = YAWCONTROL_ITEMS - 1;
+		if (--yawpitchcontrol_cursor < 0)
+			yawpitchcontrol_cursor = YAWCONTROL_ITEMS - 1;
 		break;
 
 	case 'a':
 	case K_LEFTARROW:
-		if (yawcontrol_cursor > 0)
-			M_Menu_YawControl_AdjustSliders(-1);
-		else
+		if (yawpitchcontrol_cursor == 0)
+		{
+			int newVal = 1 - cl_headtracking.integer;
+			Cvar_SetValueQuick (&cl_headtracking, newVal);
+		}
+		else if (yawpitchcontrol_cursor == 1)
+		{
+			int newPitchMode = cl_pitchmode.integer;
+			if (--newPitchMode < 0)
+				newPitchMode = 2;
+			Cvar_SetValueQuick (&cl_pitchmode, newPitchMode);
+		}
+		else if (yawpitchcontrol_cursor == 2)
 		{
 			int newYawMode = cl_yawmode.integer;
 			if (--newYawMode < 0)
@@ -2906,13 +2968,25 @@ static void M_Menu_YawControl_Key (int key, int ascii)
 
 			Cvar_SetValueQuick (&cl_yawmode, newYawMode);
 		}
+		else
+			M_Menu_YawPitchControl_AdjustSliders(-1);
 		break;
 
 	case 'd':
 	case K_RIGHTARROW:
-		if (yawcontrol_cursor > 0)
-			M_Menu_YawControl_AdjustSliders(1);
-		else
+		if (yawpitchcontrol_cursor == 0)
+		{
+			int newVal = 1 - cl_headtracking.integer;
+			Cvar_SetValueQuick (&cl_headtracking, newVal);
+		}
+		else if (yawpitchcontrol_cursor == 1)
+		{
+			int newPitchMode = cl_pitchmode.integer;
+			if (++newPitchMode > 2)
+				newPitchMode = 0;
+			Cvar_SetValueQuick (&cl_pitchmode, newPitchMode);
+		}
+		else if (yawpitchcontrol_cursor == 2)
 		{
 			int newYawMode = cl_yawmode.integer;
 			if (++newYawMode > 2)
@@ -2920,6 +2994,8 @@ static void M_Menu_YawControl_Key (int key, int ascii)
 
 			Cvar_SetValueQuick (&cl_yawmode, newYawMode);
 		}
+		else
+			M_Menu_YawPitchControl_AdjustSliders(1);
 		break;
 
 	default:
@@ -2927,7 +3003,7 @@ static void M_Menu_YawControl_Key (int key, int ascii)
 	}
 }
 
-static void M_Menu_YawControl_Draw (void)
+static void M_Menu_YawPitchControl_Draw (void)
 {
 	int visible;
 	cachepic_t	*p;
@@ -2939,16 +3015,28 @@ static void M_Menu_YawControl_Draw (void)
 	M_DrawPic((320-p->width)/2, 4, "gfx/p_option");
 
 	optnum = 0;
-	optcursor = yawcontrol_cursor;
+	optcursor = yawpitchcontrol_cursor;
 	visible = (int)((menu_height - 32) / 8);
 	opty = 32 - bound(0, optcursor - (visible >> 1), max(0, YAWCONTROL_ITEMS - visible)) * 8;
 
-	if (cl_yawmode.integer == 0)
-		M_Options_PrintCommand("  Mode: Swivel-Chair/Standing", true);
-	else if (cl_yawmode.integer == 1)
-		M_Options_PrintCommand("  Mode: Comfort-Mode", true);
+	if (cl_headtracking.integer == 0)
+		M_Options_PrintCommand(" Sensor Headtracking:  Disabled", true);
 	else
-		M_Options_PrintCommand("  Mode: Stick-Yaw", true);
+		M_Options_PrintCommand(" Sensor Headtracking:  Enabled", true);
+
+	if (cl_pitchmode.integer == 0)
+		M_Options_PrintCommand(" Pitch Mode:           Head-tracked Only (default)", true);
+	else if (cl_pitchmode.integer == 1)
+		M_Options_PrintCommand(" Pitch Mode:           Free", true);
+	else if (cl_pitchmode.integer == 2)
+		M_Options_PrintCommand(" Pitch Mode:           Free (inverted)", true);
+
+	if (cl_yawmode.integer == 0)
+		M_Options_PrintCommand("   Yaw Mode:           Swivel-Chair", true);
+	else if (cl_yawmode.integer == 1)
+		M_Options_PrintCommand("   Yaw Mode:           Comfort-Mode", true);
+	else
+		M_Options_PrintCommand("   Yaw Mode:           Stick-Yaw", true);
 
 	M_Options_PrintSlider(  "Comfort Mode Turn Angle", cl_yawmode.integer == 1, cl_comfort.value, 30, 180);
 	M_Options_PrintSlider(  "   Stick Yaw Turn Speed", cl_yawmode.integer == 2, sensitivity.value, 1, 10);
@@ -2956,10 +3044,11 @@ static void M_Menu_YawControl_Draw (void)
 	{
 		M_Options_PrintCommand(" ", true);
 		M_Options_PrintCommand(" ", true);
-		M_Options_PrintCommand("WARNING: Yaw controlled by stick can", true);
-		M_Options_PrintCommand("induce severe nausea in those not used to it.", true);
+		M_Options_PrintCommand("WARNING: Yaw controlled by stick", true);
+		M_Options_PrintCommand("can induce severe nausea in ", true);
+		M_Options_PrintCommand("those not used to it.", true);
 		M_Options_PrintCommand(" ", true);
-		M_Options_PrintCommand("* Using this mode is at your own risk! *", true);
+		M_Options_PrintCommand("* Use this mode at your own risk! *", true);
 	}
 }
 
@@ -5004,7 +5093,7 @@ static void M_Init (void)
 	Cmd_AddCommand ("menu_keys", M_Menu_Keys_f, "open the key binding menu");
 	Cmd_AddCommand ("menu_video", M_Menu_Video_f, "open the video options menu");
 	Cmd_AddCommand ("menu_reset", M_Menu_Reset_f, "open the reset to defaults menu");
-	Cmd_AddCommand ("menu_reset", M_Menu_YawControl_f, "open the yaw control menu");
+	Cmd_AddCommand ("menu_reset", M_Menu_YawPitchControl_f, "open the yaw/pitch control menu");
 	Cmd_AddCommand ("menu_mods", M_Menu_ModList_f, "open the mods browser menu");
 	Cmd_AddCommand ("help", M_Menu_Help_f, "open the help menu");
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f, "open the quit menu");
@@ -5016,8 +5105,10 @@ static void M_Init (void)
 void M_Draw (void)
 {
 	char vabuf[1024];
-	if (key_dest != key_menu && key_dest != key_menu_grabbed)
+	if (key_dest != key_menu && key_dest != key_menu_grabbed) {
 		m_state = m_none;
+		BigScreenMode(0);
+	}
 
 	if (m_state == m_none)
 		return;
@@ -5091,8 +5182,8 @@ void M_Draw (void)
 		M_Video_Draw ();
 		break;
 
-	case m_yawcontrol:
-		M_Menu_YawControl_Draw ();
+	case m_yawpitchcontrol:
+		M_Menu_YawPitchControl_Draw ();
 		break;
 
 	case m_help:
@@ -5239,8 +5330,8 @@ void M_KeyEvent (int key, int ascii, qboolean downevent)
 		M_Video_Key (key, ascii);
 		return;
 
-	case m_yawcontrol:
-		M_Menu_YawControl_Key (key, ascii);
+	case m_yawpitchcontrol:
+		M_Menu_YawPitchControl_Key (key, ascii);
 		return;
 
 	case m_help:

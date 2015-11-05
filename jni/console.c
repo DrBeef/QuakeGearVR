@@ -90,6 +90,8 @@ int con_vislines;
 
 qboolean con_initialized;
 
+extern void BigScreenMode(int mode);
+
 // used for server replies to rcon command
 lhnetsocket_t *rcon_redirect_sock = NULL;
 lhnetaddress_t *rcon_redirect_dest = NULL;
@@ -578,6 +580,9 @@ void Con_ToggleConsole_f (void)
 
 	// toggle the 'user wants console' bit
 	key_consoleactive ^= KEY_CONSOLEACTIVE_USER;
+
+	BigScreenMode(key_consoleactive > 0 ? 1 : 0);
+
 	Con_ClearNotify();
 }
 

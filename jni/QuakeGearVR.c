@@ -189,7 +189,8 @@ void GVR_exit(int exitCode)
 
 vec3_t hmdorientation;
 
-
+int bigScreen = 1;
+int stereoMode = 1;
 
 static void UnEscapeQuotes( char *arg )
 {
@@ -655,6 +656,7 @@ ovrRenderer
 typedef struct
 {
 	ovrRenderTexture	RenderTextures[NUM_BUFFERS][NUM_EYES];
+	ovrRenderTexture	QuakeRenderTexture;
 	int					BufferIndex;
 	ovrMatrix4f			ProjectionMatrix;
 	ovrMatrix4f			TanAngleMatrix;
@@ -669,11 +671,82 @@ static void ovrRenderer_Clear( ovrRenderer * renderer )
 			ovrRenderTexture_Clear( &renderer->RenderTextures[i][eye] );
 		}
 	}
+	ovrRenderTexture_Clear( &renderer->QuakeRenderTexture );
 	renderer->BufferIndex = 0;
 }
 
+static const char VERTEX_SHADER[] =
+		"uniform mat4 u_MVPMatrix;"
+		"attribute vec4 a_Position;"
+		"attribute vec2 a_texCoord;"
+		"varying vec2 v_texCoord;"
+		"void main() {"
+		"  gl_Position = u_MVPMatrix * a_Position;"
+		"  v_texCoord = a_texCoord;"
+		"}";
+
+
+static const char FRAGMENT_SHADER[] =
+		"precision mediump float;"
+		"varying vec2 v_texCoord;"
+		"uniform sampler2D s_texture;"
+		"void main() {"
+		"  gl_FragColor = texture2D( s_texture, v_texCoord );"
+		"}";
+
+int loadShader(int type, const char * shaderCode){
+	int shader = glCreateShader(type);
+	GLint length = 0;
+	GL( glShaderSource(shader, 1, &shaderCode, 0));
+	GL( glCompileShader(shader));
+	return shader;
+}
+
+static short indices[6] = {0, 1, 2, 0, 2, 3};
+
+static float uvs[8] = {
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f
+};
+
+static float SCREEN_COORDS[12] = {
+		-6.0f, 4.0f, 1.0f,
+		-6.0f, -4.0f, 1.0f,
+		6.0f, -4.0f, 1.0f,
+		6.0f, 4.0f, 1.0f
+};
+
+int positionParam = 0;
+int texCoordParam = 0;
+int samplerParam = 0;
+int modelViewProjectionParam = 0;
+
+int sp_Image = 0;
+
+ovrMatrix4f modelScreen;
+
 static void ovrRenderer_Create( ovrRenderer * renderer, const ovrHmdInfo * hmdInfo )
 {
+	 // Create the shaders, images
+	 int vertexShader = loadShader(GL_VERTEX_SHADER, VERTEX_SHADER);
+	 int fragmentShader = loadShader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+
+	 sp_Image = glCreateProgram();             // create empty OpenGL ES Program
+	 GL( glAttachShader(sp_Image, vertexShader));   // add the vertex shader to program
+	 GL( glAttachShader(sp_Image, fragmentShader)); // add the fragment shader to program
+	 GL( glLinkProgram(sp_Image));                  // creates OpenGL ES program executable
+
+	positionParam = GL( glGetAttribLocation(sp_Image, "a_Position"));
+	texCoordParam = GL( glGetAttribLocation(sp_Image, "a_texCoord"));
+	modelViewProjectionParam = GL( glGetUniformLocation(sp_Image, "u_MVPMatrix"));
+	samplerParam = GL( glGetUniformLocation(sp_Image, "s_texture"));
+
+    modelScreen = ovrMatrix4f_CreateIdentity();
+    ovrMatrix4f translation = ovrMatrix4f_CreateTranslation( 0, 0, -8.0f );
+    modelScreen = ovrMatrix4f_Multiply( &modelScreen, &translation );
+
 	// Create the render Textures.
 	for ( int i = 0; i < NUM_BUFFERS; i++ )
 	{
@@ -684,6 +757,11 @@ static void ovrRenderer_Create( ovrRenderer * renderer, const ovrHmdInfo * hmdIn
 									hmdInfo->SuggestedEyeResolution[1],
 									NUM_MULTI_SAMPLES );
 		}
+
+		ovrRenderTexture_Create( &renderer->QuakeRenderTexture,
+								hmdInfo->SuggestedEyeResolution[0],
+								hmdInfo->SuggestedEyeResolution[1],
+								NUM_MULTI_SAMPLES );
 	}
 	renderer->BufferIndex = 0;
 
@@ -704,6 +782,7 @@ static void ovrRenderer_Destroy( ovrRenderer * renderer )
 			ovrRenderTexture_Destroy( &renderer->RenderTextures[i][eye] );
 		}
 	}
+	ovrRenderTexture_Destroy( &renderer->QuakeRenderTexture );
 	renderer->BufferIndex = 0;
 }
 
@@ -731,6 +810,32 @@ void QuatToYawPitchRoll(ovrQuatf q, vec3_t out) {
 	}
 }
 
+static void clearEdgeTexels( ovrRenderTexture * rt )
+{
+	GL( glEnable( GL_SCISSOR_TEST ) );
+	GL( glViewport( 0, 0, rt->Width, rt->Height ) );
+
+	// Explicitly clear the border texels to black because OpenGL-ES does not support GL_CLAMP_TO_BORDER.
+	// Clear to fully opaque black.
+	GL( glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) );
+
+	// bottom
+	GL( glScissor( 0, 0, rt->Width, 1 ) );
+	GL( glClear( GL_COLOR_BUFFER_BIT ) );
+	// top
+	GL( glScissor( 0, rt->Height - 1, rt->Width, 1 ) );
+	GL( glClear( GL_COLOR_BUFFER_BIT ) );
+	// left
+	GL( glScissor( 0, 0, 1, rt->Height ) );
+	GL( glClear( GL_COLOR_BUFFER_BIT ) );
+	// right
+	GL( glScissor( rt->Width - 1, 0, 1, rt->Height ) );
+	GL( glClear( GL_COLOR_BUFFER_BIT ) );
+
+	GL( glScissor( 0, 0, 0, 0 ) );
+	GL( glDisable( GL_SCISSOR_TEST ) );
+}
+
 static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJava * java, long long frameIndex, int minimumVsyncs,
 											const ovrTracking * tracking )
 {
@@ -748,8 +853,8 @@ static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJ
 
 
 	// Calculate the center view matrix.
-//	const ovrHeadModelParms headModelParms = vrapi_DefaultHeadModelParms();
-//	const ovrMatrix4f centerEyeViewMatrix = vrapi_GetCenterEyeViewMatrix( &headModelParms, tracking, NULL );
+	const ovrHeadModelParms headModelParms = vrapi_DefaultHeadModelParms();
+	const ovrMatrix4f centerEyeViewMatrix = vrapi_GetCenterEyeViewMatrix( &headModelParms, tracking, NULL );
 
 	//Get orientation
 	// We extract Yaw, Pitch, Roll instead of directly using the orientation
@@ -766,9 +871,12 @@ static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJ
 	// Render the eye images.
 	for ( int eye = 0; eye < NUM_EYES; eye++ )
 	{
-//		const ovrMatrix4f eyeViewMatrix = vrapi_GetEyeViewMatrix( &headModelParms, &centerEyeViewMatrix, eye );
+		ovrRenderTexture * rt = NULL;
+		if (bigScreen != 0)
+			rt = &renderer->QuakeRenderTexture;
+		else
+			rt = &renderer->RenderTextures[renderer->BufferIndex][eye];
 
-		ovrRenderTexture * rt = &renderer->RenderTextures[renderer->BufferIndex][eye];
 		ovrRenderTexture_SetCurrent( rt );
 
 		GL( glEnable( GL_SCISSOR_TEST ) );
@@ -777,30 +885,59 @@ static ovrFrameParms ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJ
 		GL( glDepthFunc( GL_LEQUAL ) );
 		GL( glViewport( 0, 0, rt->Width, rt->Height ) );
 		GL( glScissor( 0, 0, rt->Width, rt->Height ) );
-		GL( glClearColor( 0.125f, 0.0f, 0.125f, 1.0f ) );
+		GL( glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) );
 		GL( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
+		GL( glDisable(GL_SCISSOR_TEST));
 
 		//Now do the drawing for this eye
 		QGVR_DrawFrame(eye);
 
-		// Explicitly clear the border texels to black because OpenGL-ES does not support GL_CLAMP_TO_BORDER.
-		{/*
-			// Clear to fully opaque black.
-			GL( glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) );
-			// bottom
-			GL( glScissor( 0, 0, rt->Width, 1 ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
-			// top
-			GL( glScissor( 0, rt->Height - 1, rt->Width, 1 ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
-			// left
-			GL( glScissor( 0, 0, 1, rt->Height ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
-			// right
-			GL( glScissor( rt->Width - 1, 0, 1, rt->Height ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
+		//Clear edge to prevent smearing
+		clearEdgeTexels( rt );
 
-			GL( glScissor( 0, 0, 0, 0 ) );*/
+		if (bigScreen != 0)
+		{
+			rt = &renderer->RenderTextures[renderer->BufferIndex][eye];
+			ovrRenderTexture_SetCurrent( rt );
+
+			GL( glEnable( GL_SCISSOR_TEST ) );
+			GL( glDepthMask( GL_TRUE ) );
+			GL( glEnable( GL_DEPTH_TEST ) );
+			GL( glDepthFunc( GL_LEQUAL ) );
+			GL( glViewport( 0, 0, rt->Width, rt->Height ) );
+			GL( glScissor( 0, 0, rt->Width, rt->Height ) );
+			GL( glClearColor( 0.01f, 0.0f, 0.0f, 1.0f ) );
+			GL( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
+			GL( glDisable(GL_SCISSOR_TEST));
+
+			GL( glUseProgram(sp_Image));
+
+			// Set the position of the screen
+			GL( glVertexAttribPointer(positionParam, 3, GL_FLOAT, GL_FALSE, 0, SCREEN_COORDS));
+
+			// Prepare the texture coordinates
+			GL( glVertexAttribPointer(texCoordParam, 2, GL_FLOAT, GL_FALSE, 0, uvs) );
+
+			// Apply the projection and view transformation
+			ovrMatrix4f eyeViewMatrix = vrapi_GetEyeViewMatrix( &headModelParms, &centerEyeViewMatrix, eye );
+			ovrMatrix4f modelView = ovrMatrix4f_Multiply( &eyeViewMatrix, &modelScreen );
+			ovrMatrix4f modelViewProjection = ovrMatrix4f_Multiply( &renderer->ProjectionMatrix, &modelView );
+			GL( glUniformMatrix4fv(modelViewProjectionParam, 1, GL_TRUE, (const GLfloat *)modelViewProjection.M[0]) );
+
+			// Bind texture to fbo's color texture
+			GL( glActiveTexture(GL_TEXTURE0) );
+			GL( glBindTexture(GL_TEXTURE_2D, renderer->QuakeRenderTexture.ColorTexture) );
+
+			// Set the sampler texture unit to our fbo's color texture
+			GL( glUniform1i(samplerParam, 0) );
+
+			// Draw the triangles
+			GL( glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices) );
+
+			// Disable vertex array
+			GL( glBindTexture(GL_TEXTURE_2D, 0) );
+
+			clearEdgeTexels( rt );
 		}
 
 		ovrRenderTexture_Resolve( rt );
@@ -1230,6 +1367,13 @@ int JNI_OnLoad(JavaVM* vm, void* reserved)
 
     return JNI_VERSION_1_4;
 }
+
+void BigScreenMode(int mode)
+{
+	if (bigScreen != 2)
+		bigScreen = mode;
+}
+
 
 void * AppThreadFunction( void * parm )
 {

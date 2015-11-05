@@ -437,9 +437,13 @@ cvar_t cl_movespeedkey = {CVAR_SAVE, "cl_movespeedkey","2.0","how much +speed mu
 cvar_t cl_movecliptokeyboard = {0, "cl_movecliptokeyboard", "0", "if set to 1, any move is clipped to the nine keyboard states; if set to 2, only the direction is clipped, not the amount"};
 
 cvar_t cl_yawmode = {CVAR_SAVE, "cl_yawmode","0","0 = swivel-chair, 1 = comfort, 2 = stick"};
+cvar_t cl_pitchmode = {CVAR_SAVE, "cl_pitchmode","0","0 = locked to hmd, 1 = free, 2 = free (inverted)"};
 cvar_t cl_comfort = {CVAR_SAVE, "cl_comfort","45.0","angle by which comfort mode adjusts yaw"};
 cvar_t cl_yawspeed = {CVAR_SAVE, "cl_yawspeed","150","keyboard yaw turning speed"};
 cvar_t cl_pitchspeed = {CVAR_SAVE, "cl_pitchspeed","150","keyboard pitch turning speed"};
+cvar_t cl_yawmult = {CVAR_SAVE, "cl_yawmult","1.0","Multiplier for yaw (leave at 1.0)"};
+cvar_t cl_pitchmult = {CVAR_SAVE, "cl_pitchmult","1.0","Multiplier for yaw (leave at 1.0)"};
+cvar_t cl_headtracking = {CVAR_SAVE, "cl_headtracking","0","Whether head tracking using sensor is enabled"};
 
 cvar_t cl_anglespeedkey = {CVAR_SAVE, "cl_anglespeedkey","1.5","how much +speed multiplies keyboard turning speed"};
 
@@ -2246,8 +2250,12 @@ void CL_InitInput (void)
 	Cmd_AddCommand ("register_bestweapon", IN_BestWeapon_Register_f, "(for QC usage only) change weapon parameters to be used by bestweapon; stuffcmd this in ClientConnect");
 
 	Cvar_RegisterVariable(&cl_yawmode);
+	Cvar_RegisterVariable(&cl_pitchmode);
 	Cvar_RegisterVariable(&cl_comfort);
 	Cvar_RegisterVariable(&cl_yawspeed);
+	Cvar_RegisterVariable(&cl_pitchmult);
+	Cvar_RegisterVariable(&cl_yawmult);
+	Cvar_RegisterVariable(&cl_headtracking);
 
 	Cvar_RegisterVariable(&cl_movecliptokeyboard);
 	Cvar_RegisterVariable(&cl_movement);

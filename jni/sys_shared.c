@@ -39,7 +39,7 @@ char *Sys_TimeString(const char *timeformat)
 	return sys_timestring;
 }
 
-extern GVR_exit(int exitCode);
+extern void GVR_exit(int exitCode);
 
 extern qboolean host_shuttingdown;
 void Sys_Quit (int returnvalue)

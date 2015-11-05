@@ -443,7 +443,7 @@ cvar_t cl_yawspeed = {CVAR_SAVE, "cl_yawspeed","150","keyboard yaw turning speed
 cvar_t cl_pitchspeed = {CVAR_SAVE, "cl_pitchspeed","150","keyboard pitch turning speed"};
 cvar_t cl_yawmult = {CVAR_SAVE, "cl_yawmult","1.0","Multiplier for yaw (leave at 1.0)"};
 cvar_t cl_pitchmult = {CVAR_SAVE, "cl_pitchmult","1.0","Multiplier for yaw (leave at 1.0)"};
-cvar_t cl_headtracking = {CVAR_SAVE, "cl_headtracking","0","Whether head tracking using sensor is enabled"};
+cvar_t cl_headtracking = {CVAR_SAVE, "cl_headtracking","1","Whether head tracking using sensor is enabled"};
 
 cvar_t cl_anglespeedkey = {CVAR_SAVE, "cl_anglespeedkey","1.5","how much +speed multiplies keyboard turning speed"};
 

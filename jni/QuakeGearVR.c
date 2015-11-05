@@ -67,9 +67,7 @@ extern void QGVR_SetResolution(int width, int height);
 extern void QGVR_Analog(int enable,float x,float y);
 extern void QGVR_MotionEvent(float delta, float dx, float dy);
 extern int main (int argc, char **argv);
-
-//static void M_ToggleMenu(int mode);
-
+extern	int			key_consoleactive;
 
 static JavaVM *jVM;
 static jobject audioBuffer=0;
@@ -190,7 +188,6 @@ void GVR_exit(int exitCode)
 vec3_t hmdorientation;
 
 int bigScreen = 1;
-int stereoMode = 1;
 
 static void UnEscapeQuotes( char *arg )
 {
@@ -712,10 +709,10 @@ static float uvs[8] = {
 };
 
 static float SCREEN_COORDS[12] = {
-		-6.0f, 4.0f, 1.0f,
-		-6.0f, -4.0f, 1.0f,
-		6.0f, -4.0f, 1.0f,
-		6.0f, 4.0f, 1.0f
+		-5.0f, 4.0f, 1.0f,
+		-5.0f, -4.0f, 1.0f,
+		5.0f, -4.0f, 1.0f,
+		5.0f, 4.0f, 1.0f
 };
 
 int positionParam = 0;
@@ -744,7 +741,7 @@ static void ovrRenderer_Create( ovrRenderer * renderer, const ovrHmdInfo * hmdIn
 	samplerParam = GL( glGetUniformLocation(sp_Image, "s_texture"));
 
     modelScreen = ovrMatrix4f_CreateIdentity();
-    ovrMatrix4f translation = ovrMatrix4f_CreateTranslation( 0, 0, -8.0f );
+    ovrMatrix4f translation = ovrMatrix4f_CreateTranslation( 0, 0, -9.0f );
     modelScreen = ovrMatrix4f_Multiply( &modelScreen, &translation );
 
 	// Create the render Textures.
@@ -1140,6 +1137,7 @@ static int ovrApp_HandleMotionEvent( ovrApp * app, const int source, const int a
 	if (source == SOURCE_JOYSTICK || source == SOURCE_GAMEPAD)
 	{
 		last_joystick_x=x;
+		last_joystick_y=y;
 	}
 	return 1;
 }
@@ -1371,7 +1369,12 @@ int JNI_OnLoad(JavaVM* vm, void* reserved)
 void BigScreenMode(int mode)
 {
 	if (bigScreen != 2)
-		bigScreen = mode;
+	{
+		if (key_consoleactive > 0)
+			bigScreen = 1;
+		else
+			bigScreen = mode;
+	}
 }
 
 

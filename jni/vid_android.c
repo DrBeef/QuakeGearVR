@@ -177,7 +177,7 @@ void GLES_Init(void)
 	Con_Printf("%s_EXTENSIONS: %s\n", gl_platform, gl_platformextensions);
 	
 	// LordHavoc: report supported extensions
-	Con_DPrintf("\nQuakeC extensions for server and client: %s\nQuakeC extensions for menu: %s\n", vm_sv_extensions, vm_m_extensions );
+	Con_Printf("\nQuakeC extensions for server and client: %s\nQuakeC extensions for menu: %s\n", vm_sv_extensions, vm_m_extensions );
 
 	// GLES devices in general do not like GL_BGRA, so use GL_RGBA
 	vid.forcetextype = TEXTYPE_RGBA;
@@ -201,14 +201,6 @@ void GLES_Init(void)
 	vid.support.ext_blend_subtract = true;
 	vid.support.ext_draw_range_elements = true;
 	vid.support.ext_framebuffer_object = false;
-
-	// FIXME remove this workaround once FBO + npot texture mapping is fixed
-	if(!vid.support.arb_texture_non_power_of_two)
-	{
-		vid.support.arb_framebuffer_object = false;
-		vid.support.ext_framebuffer_object = false;
-	}
-
 	vid.support.ext_packed_depth_stencil = false;
 	vid.support.ext_stencil_two_side = false;
 	vid.support.ext_texture_3d = SDL_GL_ExtensionSupported("GL_OES_texture_3D");
@@ -278,7 +270,8 @@ void GLES_Init(void)
 	Cvar_SetQuick(&gl_info_driver, gl_driver);
 }
 
-int andrw=640;int andrh=480;
+int andrw=640;
+int andrh=480;
 
 qboolean VID_InitMode(viddef_mode_t *mode)
 {
@@ -555,6 +548,13 @@ void IN_Move(void)
 
 void QGVR_MoveEvent(float yaw, float pitch, float roll)
 {
+	if (cl_headtracking.integer == 0)
+	{
+		yaw =	0;
+		pitch =	0;
+		roll =	0;
+	}
+
 	move_event.previous_yaw = move_event.yaw;
 	move_event.previous_pitch = move_event.pitch;
 	move_event.yaw = yaw * cl_yawmult.value;

@@ -1421,7 +1421,8 @@ void * AppThreadFunction( void * parm )
 				case MESSAGE_ON_CREATE:
 				{
 					ALOGV( "    Initialising Quake Engine" );
-					QGVR_SetResolution(1024, 1024);
+					QGVR_SetResolution(appState.Renderer.QuakeRenderTexture.Width,
+							appState.Renderer.QuakeRenderTexture.Height);
 					char *arg = (char*)ovrMessage_GetPointerParm( &message, 0 );
 					if (arg)
 					{

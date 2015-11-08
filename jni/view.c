@@ -33,9 +33,9 @@ when crossing a water boudnary.
 */
 
 cvar_t cl_rollspeed = {0, "cl_rollspeed", "200", "how much strafing is necessary to tilt the view"};
-cvar_t cl_rollangle = {0, "cl_rollangle", "2.0", "how much to tilt the view when strafing"};
+cvar_t cl_rollangle = {0, "cl_rollangle", "0.0", "how much to tilt the view when strafing"};
 
-cvar_t cl_bob = {CVAR_SAVE, "cl_bob","0.02", "view bobbing amount"};
+cvar_t cl_bob = {CVAR_SAVE, "cl_bob","0.0", "view bobbing amount"};
 cvar_t cl_bobcycle = {CVAR_SAVE, "cl_bobcycle","0.6", "view bobbing speed"};
 cvar_t cl_bobup = {CVAR_SAVE, "cl_bobup","0.5", "view bobbing adjustment that makes the up or down swing of the bob last longer"};
 cvar_t cl_bob2 = {CVAR_SAVE, "cl_bob2","0", "sideways view bobbing amount"};

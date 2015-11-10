@@ -77,14 +77,6 @@ import android.view.MotionEvent;
 		copy_asset("pak0.pak");
 		copy_asset("config.cfg");
 		
-		//Ensure some of the config items are set as we wish
-		try {
-			patchConfig("/sdcard/QGVR");
-		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-	
 		//Read these from a file and pass through 
 		String commandLineParams = new String("quake");
 		
@@ -162,36 +154,7 @@ import android.view.MotionEvent;
 			out.write(buf, 0, count);
 		}
 	}
-	
-	
-	public void patchConfig(String dir) throws Exception
-	{
-		if (new File(dir+"/id1/config.cfg").exists())
-		{
-			BufferedReader br=new BufferedReader(new FileReader(dir+"/id1/config.cfg"));
-			String s;
-			StringBuilder sb=new StringBuilder(0);
-			boolean needsPatching = false;
-			while ((s=br.readLine())!=null)
-			{
-				if (!s.contains("cl_forwardspeed") &&
-					!s.contains("cl_backspeed"))
-				{
-					sb.append(s+"\n");
-				}
-				else
-					needsPatching = true;
-			}
-			br.close();
-			
-			if (needsPatching)
-			{
-				FileWriter fw=new FileWriter(dir+"/id1/config.cfg");
-				fw.write(sb.toString());fw.flush();fw.close();
-			}
-		}
-	}
-	
+
 
 	@Override protected void onStart()
 	{

@@ -46,8 +46,13 @@ static qboolean r_loaddds;
 static qboolean r_savedds;
 static qboolean r_gpuskeletal;
 
-//Get stereo separation from the GVR hmd info
-extern float GVR_GetSeparation();
+cvar_t r_worldscale = {CVAR_SAVE, "r_worldscale", "40.0", "World scale multiplier (default is 40)"};
+
+float GetStereoSeparation()
+{
+	return r_worldscale.value * 0.065;
+}
+
 
 //Define the stereo side we are drawing
 int r_stereo_side;
@@ -4206,6 +4211,7 @@ void GL_Main_Init(void)
 		Cvar_RegisterVariable (&gl_fogend);
 		Cvar_RegisterVariable (&gl_skyclip);
 	}
+	Cvar_RegisterVariable(&r_worldscale);
 	Cvar_RegisterVariable(&r_motionblur);
 	Cvar_RegisterVariable(&r_damageblur);
 	Cvar_RegisterVariable(&r_motionblur_averaging);
@@ -7140,7 +7146,7 @@ void R_RenderView()
 	R_AnimCache_ClearCache();
 
 	/* adjust for stereo display */
-	Matrix4x4_CreateFromQuakeEntity(&offsetmatrix, 0, GVR_GetSeparation() * (0.5f - r_stereo_side), 0, 0, r_stereo_angle.value * (0.5f - r_stereo_side), 0, 1);
+	Matrix4x4_CreateFromQuakeEntity(&offsetmatrix, 0, GetStereoSeparation() * (0.5f - r_stereo_side), 0, 0, r_stereo_angle.value * (0.5f - r_stereo_side), 0, 1);
 	Matrix4x4_Concat(&r_refdef.view.matrix, &originalmatrix, &offsetmatrix);
 
 	if (r_refdef.view.isoverlay)

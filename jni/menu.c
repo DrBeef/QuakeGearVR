@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mprogdefs.h"
 
-#define QGVR_VERSION  "1.1.0"
+#define QGVR_VERSION  "1.1.2"
 
 #define TYPE_DEMO 1
 #define TYPE_GAME 2
@@ -43,6 +43,7 @@ char m_return_reason[128];
 
 extern vec3_t hmdorientation;
 
+extern cvar_t r_worldscale;
 
 //extern void setEyeBufferResolution(int resolution);
 extern void BigScreenMode(int mode);
@@ -1686,7 +1687,19 @@ static void M_Menu_Options_AdjustSliders (int dir)
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&r_hdr_scenebrightness, bound(1, r_hdr_scenebrightness.value + dir * 0.0625, 4));
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&v_contrast, bound(1, v_contrast.value + dir * 0.0625, 4));
 	else if (options_cursor == optnum++) Cvar_SetValueQuick(&v_gamma, bound(0.5, v_gamma.value + dir * 0.0625, 3));
-	else if (options_cursor == optnum++) Cvar_SetValueQuick(&volume, bound(0, volume.value + dir * 0.0625, 1));
+	else if (options_cursor == optnum++)
+	{
+		if (r_worldscale.value < 200.0f)
+		{
+			Cvar_SetValueQuick (&r_worldscale, 400.0f);
+			Cvar_SetValueQuick (&chase_active, 1);
+		}
+		else
+		{
+			Cvar_SetValueQuick (&r_worldscale, 40.0f);
+			Cvar_SetValueQuick (&chase_active, 0);
+		}
+	}
 }
 
 static int optnum;
@@ -1764,7 +1777,7 @@ static void M_Options_Draw (void)
 	M_Options_PrintSlider(  "       Game Brightness", true, r_hdr_scenebrightness.value, 1, 4);
 	M_Options_PrintSlider(  "            Brightness", true, v_contrast.value, 1, 2);
 	M_Options_PrintSlider(  "                 Gamma", true, v_gamma.value, 0.5, 3);
-	M_Options_PrintSlider(  "          Sound Volume", snd_initialized.integer, volume.value, 0, 1);
+	M_Options_PrintCheckbox("      Toy Soldier Mode", true, r_worldscale.value > 200.0f);
 	M_Options_PrintCommand( "     Customize Effects", true);
 	M_Options_PrintCommand( "       Effects:  Quake", true);
 	M_Options_PrintCommand( "       Effects: Normal", true);
@@ -1810,6 +1823,18 @@ static void M_Options_Key (int k, int ascii)
 			break;
 		case 10:
 			M_Menu_Options_ColorControl_f ();
+			break;
+		case 14: // Toy Soldier Mode
+			if (r_worldscale.value < 200.0f)
+			{
+				Cvar_SetValueQuick (&r_worldscale, 400.0f);
+				Cvar_SetValueQuick (&chase_active, 1);
+			}
+			else
+			{
+				Cvar_SetValueQuick (&r_worldscale, 40.0f);
+				Cvar_SetValueQuick (&chase_active, 0);
+			}
 			break;
 		case 15: // Customize Effects
 			M_Menu_Options_Effects_f ();
